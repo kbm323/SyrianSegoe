@@ -201,6 +201,17 @@ def prepare_font(path, target_em, suffix, wipe_latin=False, strip_ligatures=Fals
     font = None
     try:
         font = fontforge.open(path)
+        # Ensure font EM matches target_em without scaling outlines (avoid changing glyph shapes)
+        try:
+            orig_em = getattr(font, 'em', None)
+            if target_em and orig_em and orig_em != target_em:
+                print(f"     -> Setting EM only: {orig_em} -> {target_em} (no outline scaling)")
+                try:
+                    font.em = int(target_em)
+                except Exception as e:
+                    print(f"     -> Warning setting EM: {e}")
+        except Exception:
+            pass
         
         # 0. CLEANUP: Remove problematic glyphs early to prevent spline/kern errors
         print(f"     -> Cleaning up problematic glyphs in {os.path.basename(path)}...")
@@ -286,6 +297,88 @@ def prepare_font(path, target_em, suffix, wipe_latin=False, strip_ligatures=Fals
         
     return temp_path
 
+
+def _glyph_bbox_height(f, codepoint):
+    try:
+        g = f[codepoint]
+        if g is None:
+            return 0
+        bbox = g.boundingBox()
+        if not bbox:
+            return 0
+        return max(0, bbox[3] - bbox[1])
+    except Exception:
+        return 0
+
+
+def _compute_xheight(font_path):
+    try:
+        f = fontforge.open(font_path)
+        # Prefer 'x' (0x0078) then 'a' then 'o'
+        for cp in (0x0078, 0x0061, 0x006F, 0x006E):
+            h = _glyph_bbox_height(f, cp)
+            if h > 0:
+                f.close()
+                return h
+        # Fallback to OS/2 sxHeight if available
+        try:
+            sx = getattr(f, 'os2_sxHeight', None)
+            if sx:
+                f.close()
+                return sx
+        except:
+            pass
+        f.close()
+    except Exception:
+        pass
+    return None
+
+
+def _compute_average_height(font_path, sample_codepoints):
+    try:
+        f = fontforge.open(font_path)
+        vals = []
+        for cp in sample_codepoints:
+            h = _glyph_bbox_height(f, cp)
+            if h > 0:
+                vals.append(h)
+        f.close()
+        if vals:
+            return sum(vals) / len(vals)
+    except Exception:
+        pass
+    return None
+
+
+def _scale_unicode_ranges_in_font(font_obj, ranges, scale, adjust_width=True):
+    try:
+        if scale == 1 or scale == 0:
+            return
+        mat = fontforge.psMat.scale(scale, scale)
+        for start, end in ranges:
+            for cp in range(start, end + 1):
+                try:
+                    g = font_obj[cp]
+                    # Skip empty glyphs
+                    if not g:
+                        continue
+                    bbox = g.boundingBox()
+                    if bbox and (bbox[3] - bbox[1]) > 0:
+                        try:
+                            g.transform(mat)
+                            if adjust_width:
+                                try:
+                                    g.width = int(round(g.width * scale))
+                                except:
+                                    pass
+                        except Exception:
+                            pass
+                except Exception:
+                    continue
+    except Exception:
+        pass
+
+
 def process_weight(latin_path, arabic_path, weight_type, segoe_filename):
     if latin_path == "NONE": return
 
@@ -321,7 +414,8 @@ def process_weight(latin_path, arabic_path, weight_type, segoe_filename):
             print(f"  -> Dual mode: Syncing to Segoe grid ({target_em} EM)")
 
         # Phase 1: Prepare Latin (Sync Grid)
-        l_temp = prepare_font(latin_path, target_em, f"lat_{weight_type}", strip_ligatures=True, sync_symbols_only=is_latin_only)
+        # Preserve punctuation/symbols in the chosen Latin font so punctuation follows the selected font.
+        l_temp = prepare_font(latin_path, target_em, f"lat_{weight_type}", strip_ligatures=True, sync_symbols_only=False)
         if not l_temp:
             print(f"  -> Error: Failed to prepare Latin font. Skipping {weight_type}...")
             return
@@ -342,13 +436,19 @@ def process_weight(latin_path, arabic_path, weight_type, segoe_filename):
                 sf.em = target_em
 
             if is_latin_only:
-                # Sync symbols/punctuation from Segoe: Wipe ONLY alphanumeric characters
-                sf.selection.select(("ranges",), 0x0030, 0x0039) # 0-9
-                sf.selection.select(("more", "ranges",), 0x0041, 0x005A) # A-Z
-                sf.selection.select(("more", "ranges",), 0x0061, 0x007A) # a-z
-                sf.clear()
-                # Do NOT remove GSUB/GPOS lookups here. 
-                # This preserves Arabic joining logic (init, medi, fina, isol) from Segoe UI.
+                # In Latin-only mode: remove punctuation/symbols from Segoe so the chosen Latin font's
+                # punctuation and symbols are preserved (prevents Segoe overriding them on merge)
+                try:
+                    sf.selection.select(("ranges",), 0x0020, 0x002F)  # Basic punctuation
+                    sf.selection.select(("more", "ranges"), 0x003A, 0x0040)
+                    sf.selection.select(("more", "ranges"), 0x005B, 0x0060)
+                    sf.selection.select(("more", "ranges"), 0x007B, 0x007E)
+                    sf.selection.select(("more", "ranges"), 0x2000, 0x206F)  # General Punctuation
+                    sf.selection.select(("more", "ranges"), 0x20A0, 0x20CF)  # Currency Symbols
+                    sf.clear()
+                except Exception as e:
+                    print(f"  -> Warning clearing punctuation from Segoe: {e}")
+                # Do NOT remove GSUB/GPOS lookups here to preserve Arabic joining logic.
             else:
                 # Dual mode: Wipe basic Latin/Greek/Arabic blocks to prioritize chosen fonts
                 sf.selection.select(("ranges",), 0x0000, 0x08FF)
@@ -415,6 +515,104 @@ def process_weight(latin_path, arabic_path, weight_type, segoe_filename):
                 except:
                     pass
             return
+        # After merging: analyze merged font and adjust Arabic glyph sizes + punctuation
+        try:
+            # Compute reference x-height from the merged Latin glyphs inside final_font
+            ref_x_vals = []
+            for cp in (0x0078, 0x0061, 0x006F, 0x006E):
+                try:
+                    h = _glyph_bbox_height(final_font, cp)
+                    if h and h > 0:
+                        ref_x_vals.append(h)
+                except:
+                    continue
+            ref_x = (sum(ref_x_vals) / len(ref_x_vals)) if ref_x_vals else None
+
+            # If merged font lacks Latin samples, fallback to original Latin file or Segoe
+            if not ref_x:
+                try:
+                    if latin_path and latin_path != "NONE" and os.path.exists(latin_path):
+                        ref_x = _compute_xheight(latin_path)
+                except:
+                    ref_x = None
+            if not ref_x:
+                try:
+                    ref_x = _compute_xheight(segoe_path)
+                except:
+                    ref_x = None
+
+            # Compute Arabic average height from merged final_font
+            ara_samples = [0x0627, 0x0628, 0x062C, 0x0633, 0x0645, 0x0639]
+            ara_vals = []
+            for cp in ara_samples:
+                try:
+                    h = _glyph_bbox_height(final_font, cp)
+                    if h and h > 0:
+                        ara_vals.append(h)
+                except:
+                    continue
+            ara_avg = (sum(ara_vals) / len(ara_vals)) if ara_vals else None
+
+            # 1) Scale Arabic glyphs so their visual height approximates the Latin x-height (based on merged font)
+            try:
+                if not is_latin_only and ara_avg and ref_x:
+                    scale = float(ref_x) / float(ara_avg)
+                    # Clamp scale to a tight safe range to avoid shrinking too much
+                    if scale < 0.95: scale = 0.95
+                    if scale > 1.12: scale = 1.12
+                    if abs(scale - 1.0) > 0.02:
+                        print(f"  -> Scaling Arabic glyphs by {scale:.3f} to visually match Latin x-height")
+                        arabic_ranges = [(0x0600, 0x06FF), (0x0750, 0x077F), (0x08A0, 0x08FF), (0xFB50, 0xFDFF), (0xFE70, 0xFEFF)]
+                        _scale_unicode_ranges_in_font(final_font, arabic_ranges, scale, adjust_width=True)
+            except Exception as e:
+                print(f"  -> Warning scaling Arabic glyphs: {e}")
+
+            # 2) Adjust punctuation sizes relative to merged Latin x-height
+            try:
+                punct_samples = [0x002E, 0x002C, 0x003A, 0x003B, 0x0021, 0x003F, 0x060C, 0x061B, 0x061F]
+                # Determine desired punctuation height: use fraction of ref_x if available
+                desired_punct = None
+                if ref_x:
+                    desired_punct = ref_x * 0.28
+
+                # If punctuation glyphs already exist in merged font and look reasonable, use their average
+                existing_punct = []
+                for cp in punct_samples:
+                    try:
+                        h = _glyph_bbox_height(final_font, cp)
+                        if h and h > 0:
+                            existing_punct.append(h)
+                    except:
+                        continue
+                if existing_punct and not desired_punct:
+                    desired_punct = sum(existing_punct) / len(existing_punct)
+
+                if desired_punct:
+                    for cp in punct_samples:
+                        try:
+                            current_h = _glyph_bbox_height(final_font, cp)
+                            if current_h and current_h > 0:
+                                s = float(desired_punct) / float(current_h)
+                                # Avoid extreme resizes
+                                if s < 0.7: s = 0.7
+                                if s > 1.3: s = 1.3
+                                if abs(s - 1.0) > 0.03:
+                                    try:
+                                        g = final_font[cp]
+                                        g.transform(fontforge.psMat.scale(s, s))
+                                        try:
+                                            g.width = int(round(g.width * s))
+                                        except:
+                                            pass
+                                    except Exception:
+                                        pass
+                        except Exception:
+                            continue
+                    print("  -> Adjusted punctuation sizes to better match Latin metrics")
+            except Exception as e:
+                print(f"  -> Warning adjusting punctuation: {e}")
+        except Exception as e:
+            print(f"  -> Warning post-merge adjustments: {e}")
 
         # Phase 5: Metadata & Windows Metrics
         try:
@@ -426,9 +624,45 @@ def process_weight(latin_path, arabic_path, weight_type, segoe_filename):
             final_font.os2_weight = segoe_meta.os2_weight
             final_font.os2_stylemap = segoe_meta.os2_stylemap
             final_font.macstyle = segoe_meta.macstyle
+
+            # Use Segoe UI as the vertical-metrics reference to avoid exaggerated line-height
+            try:
+                # Ensure EM matches the chosen target grid
+                try:
+                    final_font.em = target_em
+                except:
+                    pass
+
+                # Copy simple ascent/descent if available
+                for attr in ('ascent', 'descent'):
+                    try:
+                        if hasattr(segoe_meta, attr):
+                            setattr(final_font, attr, getattr(segoe_meta, attr))
+                    except:
+                        pass
+
+                # Copy hhea values
+                for attr in ('hhea_ascent', 'hhea_descent', 'hhea_linegap'):
+                    try:
+                        if hasattr(segoe_meta, attr):
+                            setattr(final_font, attr, getattr(segoe_meta, attr))
+                    except:
+                        pass
+
+                # Copy OS/2 metrics (try several common attribute names)
+                os2_attrs = ['os2_typoascent', 'os2_typodescent', 'os2_winascent', 'os2_windescent', 'os2_usWinAscent', 'os2_usWinDescent']
+                for attr in os2_attrs:
+                    try:
+                        if hasattr(segoe_meta, attr):
+                            setattr(final_font, attr, getattr(segoe_meta, attr))
+                    except:
+                        pass
+            except Exception as e:
+                print(f"  -> Warning applying vertical metrics: {e}")
+
             segoe_meta.close()
             segoe_meta = None
-            
+
         except Exception as e:
             print(f"  -> Warning updating metadata: {e}")
 
