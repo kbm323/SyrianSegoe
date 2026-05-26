@@ -1,12 +1,44 @@
 import os
 import shutil
+import io
 from fontTools.ttLib import TTFont
 from fontTools.varLib.instancer import instantiateVariableFont
+from fontTools import subset
 
 def slice_variable_font(var_path, weight_val, out_path):
-    """Instantiates a static font from a variable font at a specific weight."""
+    """Instantiates a static font and prunes it to Segoe UI's character set for speed."""
     font = TTFont(var_path)
     static_font = instantiateVariableFont(font, {"wght": weight_val})
+
+    buf = io.BytesIO()
+    static_font.save(buf)
+    buf.seek(0)
+    static_font = TTFont(buf)
+
+    try:
+        windir = os.environ.get('WINDIR', 'C:\\Windows')
+        segoe_ref = os.path.join(windir, 'Fonts', 'segoeui.ttf')
+        if os.path.exists(segoe_ref):
+            ref_font = TTFont(segoe_ref)
+            ref_unicodes = set(ref_font.getBestCmap().keys())
+            static_cmap = static_font.getBestCmap()
+            static_order = set(static_font.getGlyphOrder())
+            static_set = static_font.getGlyphSet()
+            
+           valid_unicodes = [
+                u for u in ref_unicodes 
+                if u in static_cmap and static_cmap[u] in static_order and static_cmap[u] in static_set
+            ]
+            
+            options = subset.Options()
+            subsetter = subset.Subsetter(options=options)
+            subsetter.populate(unicodes=valid_unicodes)
+            subsetter.subset(static_font)
+            ref_font.close()
+        buf.close()
+    except Exception as e:
+        print(f"[Slicer] Pruning optimization failed (non-critical): {e}")
+
     static_font.save(out_path)
 
 def create_variable_spoof(input_path, output_path):
