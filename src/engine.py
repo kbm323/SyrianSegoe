@@ -78,9 +78,36 @@ ESSENTIAL_GLYPHS = {
 def get_segoe_metrics(segoe_path):
     """Opens Segoe UI just to get its EM grid."""
     f = fontforge.open(segoe_path)
-    em = f.em
+    metrics = {
+        'em': f.em,
+        'ascent': f.ascent,
+        'descent': f.descent,
+        'hhea_ascent': f.hhea_ascent,
+        'hhea_descent': f.hhea_descent,
+        'hhea_linegap': f.hhea_linegap,
+        'os2_typoascent': f.os2_typoascent,
+        'os2_typodescent': f.os2_typodescent,
+        'os2_winascent': f.os2_winascent,
+        'os2_windescent': f.os2_windescent
+    }
+    
+    # الحصول على الارتفاعات البصرية المرجعية لضمان مطابقة الحجم الفعلي
+    try:
+        # للاتيني: حرف H الكبير (U+0048)
+        glyph_h = f[0x48]
+        bbox = glyph_h.boundingBox()
+        metrics['lat_ref_h'] = bbox[3] - bbox[1]
+    except: metrics['lat_ref_h'] = f.ascent * 0.65
+
+    try:
+        # للعربي: حرف الألف (U+0627)
+        glyph_a = f[0x0627]
+        bbox = glyph_a.boundingBox()
+        metrics['ara_ref_h'] = bbox[3] - bbox[1]
+    except: metrics['ara_ref_h'] = f.ascent * 0.65
+
     f.close()
-    return em
+    return metrics
 
 def cleanup_unused_glyphs(font, preserve_arabic_joining=False, remove_kern_lookups=True):
     """Remove unused combining marks and problematic glyphs that cause errors."""
@@ -192,7 +219,7 @@ def cleanup_lookup_tables(font, remove_kern_lookups=True):
     except Exception as e:
         print(f"     -> Warning during lookup cleanup: {e}")
 
-def prepare_font(path, target_em, suffix, wipe_latin=False, strip_ligatures=False, sync_symbols_only=False, preserve_arabic_joining=False, remove_kern_lookups=True):
+def prepare_font(path, target_metrics, suffix, wipe_latin=False, strip_ligatures=False, sync_symbols_only=False, preserve_arabic_joining=False, remove_kern_lookups=True):
     """Safely opens a font, syncs the grid, wipes Latin if needed, and saves it."""
     if path == "NONE" or not os.path.exists(path):
         return None
@@ -202,50 +229,48 @@ def prepare_font(path, target_em, suffix, wipe_latin=False, strip_ligatures=Fals
     try:
         font = fontforge.open(path)
         
-        # Normalize font EM to target_em while preserving visual size.
+        # مطابقة شبكة التصميم (EM Grid) وتعديل الحجم بصرياً ليتناسب مع معايير Segoe
         try:
-            orig_em = getattr(font, 'em', None)
-            if target_em and orig_em and orig_em != target_em:
-                em_scale = float(target_em) / float(orig_em)
-                print(f"     -> Normalizing EM: {orig_em} -> {target_em} (scale {em_scale:.4f})")
+            target_em = target_metrics['em']
+            source_em = font.em
+            
+            # تحديد الحرف المرجعي المناسب للخط الحالي (H للاتيني أو ألف للعربي)
+            ref_h_target = 0
+            ref_glyph_code = 0
+            
+            if 0x48 in font: # حرف H
+                ref_glyph_code = 0x48
+                ref_h_target = target_metrics['lat_ref_h']
+            elif 0x0627 in font: # حرف الألف
+                ref_glyph_code = 0x0627
+                ref_h_target = target_metrics['ara_ref_h']
+
+            if ref_glyph_code > 0:
                 try:
-                    for glyph in font.glyphs():
-                        try:
-                            glyph.transform(fontforge.psMat.scale(em_scale, em_scale))
-                            try:
-                                glyph.width = int(round(glyph.width * em_scale))
-                            except:
-                                pass
-                        except Exception:
-                            pass
-                    try:
-                        font.ascent = int(round(getattr(font, 'ascent', 0) * em_scale))
-                        font.descent = int(round(getattr(font, 'descent', 0) * em_scale))
-                    except:
-                        pass
-                    try:
-                        font.hhea_ascent = int(round(getattr(font, 'hhea_ascent', 0) * em_scale))
-                        font.hhea_descent = int(round(getattr(font, 'hhea_descent', 0) * em_scale))
-                        font.hhea_linegap = int(round(getattr(font, 'hhea_linegap', 0) * em_scale))
-                    except:
-                        pass
-                    try:
-                        font.os2_typoascent = int(round(getattr(font, 'os2_typoascent', 0) * em_scale))
-                        font.os2_typodescent = int(round(getattr(font, 'os2_typodescent', 0) * em_scale))
-                        font.os2_winascent = int(round(getattr(font, 'os2_winascent', 0) * em_scale))
-                        font.os2_windescent = int(round(getattr(font, 'os2_windescent', 0) * em_scale))
-                        font.os2_usWinAscent = int(round(getattr(font, 'os2_usWinAscent', 0) * em_scale))
-                        font.os2_usWinDescent = int(round(getattr(font, 'os2_usWinDescent', 0) * em_scale))
-                    except:
-                        pass
-                    try:
-                        font.em = int(target_em)
-                    except Exception as e:
-                        print(f"     -> Warning setting EM: {e}")
+                    glyph = font[ref_glyph_code]
+                    bbox = glyph.boundingBox()
+                    source_ref_h = bbox[3] - bbox[1]
+                    
+                    if source_ref_h > 0:
+                        # حساب معامل القياس لمطابقة الارتفاع البصري في Segoe UI على الشبكة الجديدة
+                        scale = ref_h_target / source_ref_h
+                        print(f"     -> Visual Normalization: {source_ref_h:.1f} height -> {ref_h_target:.1f} (factor {scale:.4f})")
+                        
+                        font.selection.all()
+                        font.transform(fontforge.psMat.scale(scale, scale))
+                        
+                        # تعديل عرض الحروف يدوياً لضمان الدقة بعد التحويل
+                        for g in font.glyphs():
+                            g.width = int(round(g.width * scale))
                 except Exception as e:
-                    print(f"     -> Warning normalizing EM: {e}")
-        except Exception:
-            pass
+                    print(f"     -> Warning during visual scaling: {e}")
+            
+            # مزامنة شبكة الـ EM والمقاييس العمودية بدقة
+            font.em = target_em
+            font.ascent = target_metrics['ascent']
+            font.descent = target_metrics['descent']
+        except Exception as e:
+            print(f"     -> Warning normalizing grid/EM: {e}")
         
         # 0. CLEANUP: Remove problematic glyphs early to prevent spline/kern errors
         print(f"     -> Cleaning up problematic glyphs in {os.path.basename(path)}...")
@@ -270,14 +295,9 @@ def prepare_font(path, target_em, suffix, wipe_latin=False, strip_ligatures=Fals
         # 2. Clear Symbols/Punctuation to "sync" them from Segoe (Latin-only mode)
         if sync_symbols_only:
             try:
-                print(f"     -> Clearing symbols, punctuation, and Arabic in {os.path.basename(path)} to sync from system...")
-                font.selection.select(("ranges",), 0x0020, 0x007F) # Basic Latin range
-                font.selection.select(("less", "ranges",), 0x0030, 0x0039) # Keep 0-9
-                font.selection.select(("less", "ranges",), 0x0041, 0x005A) # Keep A-Z
-                font.selection.select(("less", "ranges",), 0x0061, 0x007A) # Keep a-z
-                
-                # Clear Arabic ranges to ensure joining logic from Segoe UI is used correctly without interference
-                font.selection.select(("more", "ranges",), 0x0600, 0x06FF) # Arabic
+                print(f"     -> Clearing potential Arabic leftovers in {os.path.basename(path)} to sync system joining logic...")
+                # Clear Arabic ranges only to ensure joining logic from Segoe UI is used correctly without interference
+                font.selection.select(("ranges",), 0x0600, 0x06FF) # Arabic
                 font.selection.select(("more", "ranges",), 0x0750, 0x077F) # Arabic Supplement
                 font.selection.select(("more", "ranges",), 0x08A0, 0x08FF) # Arabic Extended-A
                 font.selection.select(("more", "ranges",), 0xFB50, 0xFDFF) # Presentation Forms A
@@ -285,7 +305,7 @@ def prepare_font(path, target_em, suffix, wipe_latin=False, strip_ligatures=Fals
 
                 font.clear()
             except Exception as e:
-                print(f"     -> Error clearing symbols/Arabic: {e}")
+                print(f"     -> Error clearing Arabic leftovers: {e}")
             
         # 3. Strip ALL GSUB/GPOS Lookups aggressively (but preserve Arabic features when requested)
         if strip_ligatures:
@@ -351,28 +371,19 @@ def process_weight(latin_path, arabic_path, weight_type, segoe_filename):
     
     try:
         # Phase 0: Determine Target Grid
+        target_metrics = get_segoe_metrics(segoe_path)
+        target_em = target_metrics['em']
         is_latin_only = (arabic_path == "NONE")
-        if is_latin_only:
-            # Latin only mode: Preserve Latin grid (prevent character distortion)
-            # Sync symbols to Latin EM instead
-            lf = fontforge.open(latin_path)
-            target_em = lf.em
-            lf.close()
-            lf = None
-            print(f"  -> Latin-only mode: Preserved original grid ({target_em} EM)")
-        else:
-            # Dual mode: Sync everything to Segoe standard grid
-            target_em = get_segoe_metrics(segoe_path)
-            print(f"  -> Dual mode: Syncing to Segoe grid ({target_em} EM)")
+        print(f"  -> Syncing to Segoe standard grid ({target_em} EM) and vertical metrics")
 
         # Phase 1: Prepare Latin (Sync Grid)
-        l_temp = prepare_font(latin_path, target_em, f"lat_{weight_type}", strip_ligatures=True, sync_symbols_only=is_latin_only)
+        l_temp = prepare_font(latin_path, target_metrics, f"lat_{weight_type}", strip_ligatures=True, sync_symbols_only=is_latin_only)
         if not l_temp:
             print(f"  -> Error: Failed to prepare Latin font. Skipping {weight_type}...")
             return
 
         # Phase 2: Prepare Arabic (Sync Grid + Wipe Latin)
-        a_temp = prepare_font(arabic_path, target_em, f"ara_{weight_type}", wipe_latin=True, preserve_arabic_joining=True, strip_ligatures=False, remove_kern_lookups=False)
+        a_temp = prepare_font(arabic_path, target_metrics, f"ara_{weight_type}", wipe_latin=True, preserve_arabic_joining=True, strip_ligatures=False, remove_kern_lookups=False)
         if not is_latin_only and not a_temp:
             print(f"  -> Error: Failed to prepare Arabic font. Skipping {weight_type}...")
             return
@@ -386,19 +397,14 @@ def process_weight(latin_path, arabic_path, weight_type, segoe_filename):
             if sf.em != target_em:
                 sf.em = target_em
 
-            if is_latin_only:
-                # Sync symbols/punctuation from Segoe: Wipe ONLY alphanumeric characters
-                sf.selection.select(("ranges",), 0x0030, 0x0039) # 0-9
-                sf.selection.select(("more", "ranges",), 0x0041, 0x005A) # A-Z
-                sf.selection.select(("more", "ranges",), 0x0061, 0x007A) # a-z
-                sf.clear()
-                # Do NOT remove GSUB/GPOS lookups here. 
-                # This preserves Arabic joining logic (init, medi, fina, isol) from Segoe UI.
-            else:
-                # Dual mode: Wipe basic Latin/Greek/Arabic blocks to prioritize chosen fonts
-                sf.selection.select(("ranges",), 0x0000, 0x08FF)
-                sf.clear()
-                # In dual mode, we strip lookups as they are provided by the chosen Latin/Arabic fonts.
+            # Wipe Alphanumeric, Basic Punctuation (ASCII), and Arabic from Segoe to prioritize the user's chosen font
+            sf.selection.select(("ranges",), 0x0020, 0x007E) # ASCII Range (Punctuation + Alphanumeric)
+            sf.selection.select(("more", "ranges",), 0x0600, 0x06FF) # Arabic blocks
+            sf.selection.select(("more", "ranges",), 0xFB50, 0xFDFF)
+            sf.selection.select(("more", "ranges",), 0xFE70, 0xFEFF)
+            sf.clear()
+
+            if not is_latin_only:
                 try:
                     for lookup in list(sf.gsub_lookups):
                         try:
@@ -470,6 +476,18 @@ def process_weight(latin_path, arabic_path, weight_type, segoe_filename):
             final_font.sfnt_names = segoe_meta.sfnt_names
             final_font.os2_weight = segoe_meta.os2_weight
             final_font.os2_stylemap = segoe_meta.os2_stylemap
+            
+            # Sync ALL vertical metrics to match segoeui.ttf standard
+            final_font.ascent = segoe_meta.ascent
+            final_font.descent = segoe_meta.descent
+            final_font.hhea_ascent = segoe_meta.hhea_ascent
+            final_font.hhea_descent = segoe_meta.hhea_descent
+            final_font.hhea_linegap = segoe_meta.hhea_linegap
+            final_font.os2_typoascent = segoe_meta.os2_typoascent
+            final_font.os2_typodescent = segoe_meta.os2_typodescent
+            final_font.os2_winascent = segoe_meta.os2_winascent
+            final_font.os2_windescent = segoe_meta.os2_windescent
+            
             final_font.macstyle = segoe_meta.macstyle
             segoe_meta.close()
             segoe_meta = None
