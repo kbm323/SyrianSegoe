@@ -10,18 +10,20 @@ def clone_original_segoe(backup_dir):
     f_dir = os.path.join(os.environ['WINDIR'], 'Fonts')
     reg_path = r"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
 
+    # Clone both normal and italic Segoe UI variants so the optional italic support can be preserved.
     segoe_files = {
         "segoeui.ttf": "Segoe UI Clone",
         "segoeuib.ttf": "Segoe UI Clone Bold",
         "segoeuii.ttf": "Segoe UI Clone Italic",
         "segoeuiz.ttf": "Segoe UI Clone Bold Italic",
         "segoeuil.ttf": "Segoe UI Clone Light",
-        "segoeuili.ttf": "Segoe UI Clone Light Italic",
+        "seguili.ttf": "Segoe UI Clone Light Italic",
         "segoeuisl.ttf": "Segoe UI Clone Semilight",
-        "segoeuisli.ttf": "Segoe UI Clone Semilight Italic",
+        "seguisli.ttf": "Segoe UI Clone Semilight Italic",
         "seguisb.ttf": "Segoe UI Clone Semibold",
         "seguisbi.ttf": "Segoe UI Clone Semibold Italic",
         "seguibl.ttf": "Segoe UI Clone Black",
+        "seguibli.ttf": "Segoe UI Clone Black Italic",
     }
 
     for src_file, reg_name in segoe_files.items():
