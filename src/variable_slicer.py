@@ -10,11 +10,14 @@ def slice_variable_font(var_path, weight_val, out_path):
     font = TTFont(var_path)
     static_font = instantiateVariableFont(font, {"wght": weight_val})
 
+    # منطق جديد: تفريغ الجداول وإعادة تحميل الخط في الذاكرة لمنع أخطاء KeyError (مثل tilde)
+    # هذه الخطوة تضمن أن فهارس الرموز محدثة تماماً قبل عملية التقليم
     buf = io.BytesIO()
     static_font.save(buf)
     buf.seek(0)
     static_font = TTFont(buf)
 
+    # تحسين السرعة عبر حذف الرموز غير الموجودة في سيغو الأصلي
     try:
         windir = os.environ.get('WINDIR', 'C:\\Windows')
         segoe_ref = os.path.join(windir, 'Fonts', 'segoeui.ttf')
@@ -25,7 +28,9 @@ def slice_variable_font(var_path, weight_val, out_path):
             static_order = set(static_font.getGlyphOrder())
             static_set = static_font.getGlyphSet()
             
-           valid_unicodes = [
+            # فحص ثلاثي: يجب أن يكون الرمز في Cmap، وله اسم في GlyphOrder، وبيانات مادية في GlyphSet
+            # هذا يمنع أخطاء KeyError لرموز مثل uni200B أو الرموز الرياضية المفقودة
+            valid_unicodes = [
                 u for u in ref_unicodes 
                 if u in static_cmap and static_cmap[u] in static_order and static_cmap[u] in static_set
             ]
@@ -48,15 +53,17 @@ def create_variable_spoof(input_path, output_path):
     except Exception as e:
         print(f"[Slicer] Error copying variable font: {e}")
 
-def resolve_weights(base_path, is_var, reg_path, light_path, semilight_path, semibold_path, bold_path, black_path, lang_prefix):
+def resolve_weights(base_path, is_var, reg_path, light_path, semilight_path, semibold_path, bold_path, black_path, lang_prefix, weights=None):
     """
-    Determines the 6 standard weights needed. 
+    Determines the required weights needed.
     If variable, it slices them. If static, it maps existing files or defaults to Regular.
     """
+    if weights is None:
+        weights = [300, 350, 400, 600, 700, 900]
+
     paths = []
     if is_var:
         # Standard Windows weights: Light, Semilight, Reg, Semibold, Bold, Black
-        weights = [300, 350, 400, 600, 700, 900] 
         for w in weights:
             out = os.path.join(base_path, f"temp_{lang_prefix}_{w}.ttf")
             slice_variable_font(reg_path, w, out)
@@ -68,6 +75,20 @@ def resolve_weights(base_path, is_var, reg_path, light_path, semilight_path, sem
         b = bold_path if bold_path else r
         sb = semibold_path if semibold_path else b
         blk = black_path if black_path else b
-        
-        paths = [lt, sl, r, sb, b, blk]
+
+        static_map = [lt, sl, r, sb, b, blk]
+        # For custom weight lists, map values by position while preserving fallback behavior.
+        if len(weights) == 6:
+            paths = static_map
+        else:
+            key_map = {
+                0: lt,
+                1: sl,
+                2: r,
+                3: sb,
+                4: b,
+                5: blk
+            }
+            for idx in range(len(weights)):
+                paths.append(key_map.get(idx, r))
     return paths
