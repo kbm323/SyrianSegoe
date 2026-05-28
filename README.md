@@ -17,8 +17,6 @@
 SyrianSegoe is a powerful, system-wide font replacement tool for Windows. It completely replaces the default "Segoe UI" font with a modded font of your choice. Because it patches the font files directly, it seamlessly applies your custom font across the entire OS, including modern UI elements that usually resist customization.
 
 <table>
-  <tr>
-    <td width="50%" valign="top">
 
 ## ✨ Features
 * **True System-Wide Replacement:** Works flawlessly on UWP apps, the Windows 11 Taskbar, Settings, Welcome and Login UI.
@@ -27,11 +25,10 @@ SyrianSegoe is a powerful, system-wide font replacement tool for Windows. It com
 * **Built-in Backup & Restore:** Automatically backs up your original Segoe UI fonts and allows you to restore them with a single click.
 * **Multi-language UI:** Available in English, Turkish, and Arabic.
 
-    </td>
-    <td width="50%" valign="top">
+    <br>
       <img src="screenshots/app_screenshot.png" alt="SyrianSegoe App Screenshot" width="100%">
-    </td>
-  </tr>
+      </br>
+
 </table>
 ---
 
