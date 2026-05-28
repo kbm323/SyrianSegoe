@@ -1,10 +1,11 @@
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
-import os, shutil, subprocess, ctypes, sys, threading, json, tempfile, re
+import os, shutil, subprocess, ctypes, sys, threading, json, tempfile, re, winreg
 from PIL import Image 
 import translations 
 import segoe_cloner
 import variable_slicer
+import font_resizer
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
@@ -21,6 +22,57 @@ def is_admin():
     try: return ctypes.windll.shell32.IsUserAnAdmin()
     except: return False
 
+class SystemFontPicker(ctk.CTkToplevel):
+    def __init__(self, parent, callback):
+        super().__init__(parent)
+        self.title("Select System Font")
+        self.geometry("400x500")
+        self.callback = callback
+        self.parent = parent
+        self.fonts = self.get_system_fonts()
+        self.font_names = sorted(list(self.fonts.keys()))
+        self.search_var = ctk.StringVar()
+        self.search_var.trace_add("write", self.update_list)
+        self.search_entry = ctk.CTkEntry(self, placeholder_text="Search font...", textvariable=self.search_var)
+        self.search_entry.pack(fill="x", padx=20, pady=10)
+        self.scroll = ctk.CTkScrollableFrame(self)
+        self.scroll.pack(fill="both", expand=True, padx=20, pady=10)
+        self.buttons = []
+        self.update_list()
+        self.grab_set()
+
+    def get_system_fonts(self):
+        fonts = {}
+        reg_path = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
+        try:
+            reg_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, reg_path)
+            for i in range(winreg.QueryInfoKey(reg_key)[1]):
+                name, value, _ = winreg.EnumValue(reg_key, i)
+                if not os.path.isabs(value):
+                    value = os.path.join(os.environ.get('WINDIR', 'C:\\Windows'), 'Fonts', value)
+                if os.path.exists(value):
+                    clean_name = re.sub(r'\s*\(.*?\)$', '', name)
+                    fonts[clean_name] = value
+            winreg.CloseKey(reg_key)
+        except: pass
+        return fonts
+
+    def update_list(self, *args):
+        for btn in self.buttons: btn.destroy()
+        self.buttons = []
+        search_term = self.search_var.get().lower()
+        for name in self.font_names:
+            if search_term in name.lower():
+                btn = ctk.CTkButton(self.scroll, text=name, anchor="w", fg_color="transparent", 
+                                   text_color=self.parent._theme_text_color(), hover_color=("gray70", "gray30"),
+                                   command=lambda n=name: self.select_font(n))
+                btn.pack(fill="x", pady=2)
+                self.buttons.append(btn)
+
+    def select_font(self, name):
+        self.callback(self.fonts[name], name)
+        self.destroy()
+
 class SyrianSegoeApp(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -35,24 +87,31 @@ class SyrianSegoeApp(ctk.CTk):
         self.font_sub = ctk.CTkFont(family=self.ui_font_family, size=14)
         self.font_bold = ctk.CTkFont(family=self.ui_font_family, size=13, weight="bold")
         self.font_small = ctk.CTkFont(family=self.ui_font_family, size=11)
-        self.font_side_btn = ctk.CTkFont(family="Segoe UI Symbol", size=14)
-        self.version = "v0.4"
+        self.font_side_btn = ctk.CTkFont(family="Segoe UI Symbol", size=16)
+        self.version = "v0.5"
         app_id = f"SyrianSegoe.App.{self.version.lstrip('v')}"
 
         # --- Data Initialization ---
         self.latin_light = None; self.latin_semilight = None; self.latin_reg = None
         self.latin_semibold = None; self.latin_bold = None; self.latin_black = None
-        
+        self.latin_is_var = False
+
         self.arabic_light = None; self.arabic_semilight = None; self.arabic_reg = None
         self.arabic_semibold = None; self.arabic_bold = None; self.arabic_black = None
-        
-        self.latin_is_var = False
         self.arabic_is_var = False
+
+        self.latin_italic_light = None; self.latin_italic_semilight = None; self.latin_italic_reg = None
+        self.latin_italic_semibold = None; self.latin_italic_bold = None; self.latin_italic_black = None
+        self.latin_italic_is_var = False
+
+        self.arabic_italic_light = None; self.arabic_italic_semilight = None; self.arabic_italic_reg = None
+        self.arabic_italic_semibold = None; self.arabic_italic_bold = None; self.arabic_italic_black = None
+        self.arabic_italic_is_var = False
 
         # --- Window Setup ---
         self.detect_language()
         self.title("SyrianSegoe")
-        self.geometry("700x700") 
+        self.set_initial_geometry()
 
         icon_path = resource_path("logo.ico")
         if os.path.exists(icon_path):
@@ -62,11 +121,17 @@ class SyrianSegoeApp(ctk.CTk):
         self.run_backup()
         self.ensure_fonttools()
 
+        # --- Config Path ---
+        self.config_dir = os.path.join(os.path.expanduser("~"), 'Documents', 'SyrianSegoe')
+        self.config_path = os.path.join(self.config_dir, 'config.json')
+
         # --- Settings Variables ---
         self.show_log_var = ctk.BooleanVar(value=False)
         self.save_log_var = ctk.BooleanVar(value=False)
         self.save_font_var = ctk.BooleanVar(value=False)
         self.clone_segoe_var = ctk.BooleanVar(value=False)
+        self.enable_italic_var = ctk.BooleanVar(value=False)
+        self.merging_mode_var = ctk.StringVar(value="visual")
         self.current_appearance_mode = "System"
 
         # --- Layout Configuration ---
@@ -83,10 +148,19 @@ class SyrianSegoeApp(ctk.CTk):
                                       anchor="w", command=lambda: self.select_frame("home"), font=self.font_side_btn)
         self.home_btn.grid(row=0, column=0, sticky="ew", pady=(20, 0))
 
-        self.settings_btn = ctk.CTkButton(self.sidebar_frame, text=self.t("nav_settings"), corner_radius=0, height=40, border_spacing=10, 
+        # Sidebar Buttons Ordered: Home -> Font Size -> Settings
+        self.home_btn.grid(row=0, column=0, sticky="ew", pady=(20, 0))
+        
+        # Icons used: \uE10F (Home), \uE129 (Font/Aa), \uE115 (Settings)
+        self.font_size_nav_btn = ctk.CTkButton(self.sidebar_frame, text=self.t("nav_font_size"), corner_radius=0, height=45, border_spacing=10, 
+                                              fg_color="transparent", text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"),
+                                              anchor="w", command=lambda: self.select_frame("font_size"), font=self.font_side_btn)
+        self.font_size_nav_btn.grid(row=1, column=0, sticky="ew")
+
+        self.settings_btn = ctk.CTkButton(self.sidebar_frame, text=self.t("nav_settings"), corner_radius=0, height=45, border_spacing=10, 
                                           fg_color="transparent", text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"),
                                           anchor="w", command=lambda: self.select_frame("settings"), font=self.font_side_btn)
-        self.settings_btn.grid(row=1, column=0, sticky="ew")
+        self.settings_btn.grid(row=2, column=0, sticky="ew")
 
         # Version Label at Bottom of Sidebar
         self.version_label = ctk.CTkLabel(self.sidebar_frame, text=self.version, font=self.font_small, text_color="gray")
@@ -113,8 +187,21 @@ class SyrianSegoeApp(ctk.CTk):
         self.scroll_frame = ctk.CTkScrollableFrame(self.home_frame, fg_color="transparent")
         self.scroll_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
-        self.setup_section("latin", self.t("latin_sec"), self.scroll_frame)
-        self.setup_section("arabic", self.t("arab_sec"), self.scroll_frame)
+        self.selection_container = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
+        self.selection_container.pack(fill="both", expand=True)
+        self.selection_container.grid_columnconfigure(0, weight=1)
+        self.selection_container.grid_columnconfigure(1, weight=1)
+
+        self.regular_panel = ctk.CTkFrame(self.selection_container, fg_color="transparent")
+        self.regular_panel.grid(row=0, column=0, columnspan=2, sticky="n", padx=(0, 8), pady=5)
+        self.italic_panel = ctk.CTkFrame(self.selection_container, fg_color="transparent")
+        self.italic_panel.grid(row=0, column=1, sticky="nsew", padx=(8, 0), pady=5)
+
+        self.setup_section("latin", self.t("latin_sec"), self.regular_panel)
+        self.setup_section("arabic", self.t("arab_sec"), self.regular_panel)
+        self.setup_section("latin_italic", self.t("latin_italic_sec"), self.italic_panel, browse_key="browse_italic", weight_keys=["light", "semilight", "semibold", "bold", "black"])
+        self.setup_section("arabic_italic", self.t("arabic_italic_sec"), self.italic_panel, browse_key="browse_italic", weight_keys=["light", "semilight", "semibold", "bold", "black"])
+        self.italic_panel.grid_remove()
 
         self.progress_frame = ctk.CTkFrame(self.home_frame, fg_color="transparent")
         self.progress_frame.pack(fill="x", padx=40, pady=5)
@@ -131,6 +218,56 @@ class SyrianSegoeApp(ctk.CTk):
         self.revert_btn = ctk.CTkButton(self.home_frame, text=self.t("restore"), fg_color="#444", height=40, 
                                         command=self.restore_system, font=self.font_base)
         self.revert_btn.pack(pady=(0, 15))
+
+        # --- Advanced Font Size Frame ---
+        self.font_size_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.fs_scroll = ctk.CTkScrollableFrame(self.font_size_frame, fg_color="transparent")
+        self.fs_scroll.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        self.font_size_title_lbl = ctk.CTkLabel(self.fs_scroll, text=self.t("font_size_title"), font=self.font_title)
+        self.font_size_title_lbl.pack(pady=(10, 20), padx=20, anchor="w")
+
+        # 1. Entire Font Size Section
+        entire_frame = ctk.CTkFrame(self.fs_scroll, fg_color=("gray85", "gray20"))
+        entire_frame.pack(fill="x", padx=20, pady=10)
+        self.entire_lbl = ctk.CTkLabel(entire_frame, text=self.t("font_size_entire"), font=self.font_bold)
+        self.entire_lbl.pack(pady=10)
+        
+        self.entire_size_menu = ctk.CTkOptionMenu(entire_frame, values=[f"{i} pt" for i in [6,7,8,9,10,11,12,14,16,18,20,22,24]], font=self.font_base)
+        self.entire_size_menu.set("9 pt")
+        self.entire_size_menu.pack(pady=5)
+        
+        self.entire_apply_btn = ctk.CTkButton(entire_frame, text=self.t("apply"), command=self.apply_entire_size_ui)
+        self.entire_apply_btn.pack(pady=15)
+
+        ctk.CTkLabel(self.fs_scroll, text="─" * 40, text_color="gray").pack(pady=10)
+
+        # 2. Individual Settings
+        self.indiv_title_lbl = ctk.CTkLabel(self.fs_scroll, text=self.t("font_size_individual"), font=self.font_bold)
+        self.indiv_title_lbl.pack(pady=10)
+        
+        self.fs_controls = {}
+        self.fs_labels = {}
+        metrics_map = [
+            ("caption", "font_size_title_bar"), ("icon", "font_size_icons"),
+            ("sm_caption", "font_size_palette"), ("status", "font_size_hint"),
+            ("message", "font_size_message_box"), ("menu", "font_size_menu")
+        ]
+        
+        for key, trans_key in metrics_map:
+            row = ctk.CTkFrame(self.fs_scroll, fg_color="transparent")
+            row.pack(fill="x", padx=40, pady=5)
+            lbl = ctk.CTkLabel(row, text=self.t(trans_key), font=self.font_base, width=150, anchor="w")
+            lbl.pack(side="left")
+            self.fs_labels[key] = (lbl, trans_key)
+            menu = ctk.CTkOptionMenu(row, values=[f"{i} pt" for i in [6,7,8,9,10,11,12,14,16,18,20,22,24]], width=80)
+            menu.set("9 pt")
+            menu.pack(side="right")
+            self.fs_controls[key] = menu
+
+        self.indiv_apply_btn = ctk.CTkButton(self.fs_scroll, text=self.t("apply"), fg_color="#2c3e50", 
+                                            command=self.apply_individual_size_ui)
+        self.indiv_apply_btn.pack(pady=30)
 
         # --- Settings Frame ---
         self.settings_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -160,6 +297,19 @@ class SyrianSegoeApp(ctk.CTk):
         )
         self.appearance_mode_menu.pack(side="left", padx=10)
 
+        merge_container = ctk.CTkFrame(self.settings_frame, fg_color="transparent")
+        merge_container.pack(fill="x", padx=20, pady=10)
+        self.merging_mode_lbl = ctk.CTkLabel(merge_container, text=self.t("settings_merging_mode"), font=self.font_bold)
+        self.merging_mode_lbl.pack(side="left", padx=10)
+
+        self.merging_mode_menu = ctk.CTkOptionMenu(
+            merge_container,
+            values=[self.t("mode_visual"), self.t("mode_grid")],
+            command=self.change_merging_mode_event,
+            font=self.font_base, dropdown_font=self.font_base
+        )
+        self.merging_mode_menu.pack(side="left", padx=10)
+
         self.settings_options_frame = ctk.CTkFrame(self.settings_frame, fg_color="transparent")
         self.settings_options_frame.pack(fill="x", padx=30, pady=10)
 
@@ -175,43 +325,104 @@ class SyrianSegoeApp(ctk.CTk):
         self.clone_segoe_chk = ctk.CTkCheckBox(self.settings_options_frame, text=self.t("settings_clone_segoe"), variable=self.clone_segoe_var, font=self.font_base)
         self.clone_segoe_chk.pack(pady=5, fill="x")
 
+        self.enable_italic_chk = ctk.CTkCheckBox(self.settings_options_frame, text=self.t("settings_enable_italic"), variable=self.enable_italic_var, font=self.font_base, command=self.toggle_italic_sections)
+        self.enable_italic_chk.pack(pady=5, fill="x")
+
         # --- Log Display (TextBox) ---
         self.log_textbox = ctk.CTkTextbox(self.settings_frame, height=150, font=ctk.CTkFont(family="Consolas", size=11), state="disabled")
         self.log_textbox.pack(fill="x", padx=30, pady=10)
         self.log_textbox.pack_forget() # المخفي افتراضياً، يظهر عند تفعيل الخيار
 
-        # --- Handle State Loading (after admin elevation) ---
+        # --- Initialization & Loading ---
+        self.load_config() # تحميل الإعدادات المحفوظة أولاً
+        
+        # التعامل مع الحالة المؤقتة (بعد رفع الصلاحيات)
         if len(sys.argv) > 2 and sys.argv[1] == "--state":
             self.load_state(sys.argv[2])
 
-        # --- Initialization ---
         self.select_frame("home")
+        self.toggle_italic_sections()
         self.refresh_ui_text()
 
-    def save_state(self):
-        """Saves current UI state to a temporary JSON file for admin elevation."""
-        state = {
+    def update_font_size_ui(self):
+        """Fetches current system metrics and updates the UI menus."""
+        try:
+            current = font_resizer.get_current_metrics()
+            for key, val in current.items():
+                if key in self.fs_controls:
+                    self.fs_controls[key].set(f"{val} pt")
+            
+            # Update Entire Font Size menu if all values match
+            vals = list(current.values())
+            if vals and all(v == vals[0] for v in vals):
+                if f"{vals[0]} pt" in self.entire_size_menu.cget("values"):
+                    self.entire_size_menu.set(f"{vals[0]} pt")
+        except: pass
+
+    def apply_entire_size_ui(self):
+        val = int(self.entire_size_menu.get().split()[0])
+        font_resizer.apply_entire_size(val)
+        self.update_font_size_ui()
+
+    def apply_individual_size_ui(self):
+        metrics = {k: int(m.get().split()[0]) for k, m in self.fs_controls.items()}
+        font_resizer.apply_system_metrics(metrics)
+        self.update_font_size_ui()
+
+    def get_current_state_dict(self):
+        """Returns a dictionary representing the current UI state."""
+        return {
             "lang": self.current_lang,
             "theme": self.current_appearance_mode,
             "vars": {
                 "show_log": self.show_log_var.get(),
                 "save_log": self.save_log_var.get(),
                 "save_font": self.save_font_var.get(),
-                "clone_segoe": self.clone_segoe_var.get()
+                "clone_segoe": self.clone_segoe_var.get(),
+                "enable_italic": self.enable_italic_var.get(),
+                "merging_mode": self.merging_mode_var.get()
             },
             "paths": {
                 "latin": {w: getattr(self, f"latin_{w}") for w in ["reg", "light", "semilight", "semibold", "bold", "black"]},
-                "arabic": {w: getattr(self, f"arabic_{w}") for w in ["reg", "light", "semilight", "semibold", "bold", "black"]}
+                "arabic": {w: getattr(self, f"arabic_{w}") for w in ["reg", "light", "semilight", "semibold", "bold", "black"]},
+                "latin_italic": {w: getattr(self, f"latin_italic_{w}") for w in ["reg", "light", "semilight", "semibold", "bold", "black"]},
+                "arabic_italic": {w: getattr(self, f"arabic_italic_{w}") for w in ["reg", "light", "semilight", "semibold", "bold", "black"]}
             },
-            "is_var": {"latin": self.latin_is_var, "arabic": self.arabic_is_var}
+            "is_var": {
+                "latin": self.latin_is_var,
+                "arabic": self.arabic_is_var,
+                "latin_italic": self.latin_italic_is_var,
+                "arabic_italic": self.arabic_italic_is_var
+            }
         }
+
+    def save_config(self):
+        """Saves current settings to the persistent config file."""
+        try:
+            if not os.path.exists(self.config_dir): os.makedirs(self.config_dir)
+            state = self.get_current_state_dict()
+            with open(self.config_path, 'w', encoding='utf-8') as f:
+                json.dump(state, f, indent=4)
+        except: pass
+
+    def load_config(self):
+        """Loads settings from the persistent config file on startup."""
+        if os.path.exists(self.config_path):
+            self._apply_state_from_file(self.config_path, cleanup=False)
+
+    def save_state(self):
+        """Saves current UI state to a temporary JSON file for admin elevation."""
+        state = self.get_current_state_dict()
         fd, path = tempfile.mkstemp(suffix=".json", prefix="ss_state_")
         with os.fdopen(fd, 'w', encoding='utf-8') as f:
             json.dump(state, f)
         return path
 
     def load_state(self, path):
-        """Loads UI state from the temporary JSON file."""
+        self._apply_state_from_file(path, cleanup=True)
+
+    def _apply_state_from_file(self, path, cleanup=False):
+        """Shared logic for loading state from config or temporary files."""
         if not os.path.exists(path): return
         try:
             with open(path, 'r', encoding='utf-8') as f:
@@ -220,13 +431,16 @@ class SyrianSegoeApp(ctk.CTk):
             self.current_appearance_mode = state["theme"]
             ctk.set_appearance_mode(self.current_appearance_mode)
             for key, val in state["vars"].items(): getattr(self, f"{key}_var").set(val)
-            for lang in ["latin", "arabic"]:
-                setattr(self, f"{lang}_is_var", state["is_var"][lang])
-                for w, p in state["paths"][lang].items(): setattr(self, f"{lang}_{w}", p)
-            os.remove(path) # Cleanup
+            for lang in ["latin", "arabic", "latin_italic", "arabic_italic"]:
+                setattr(self, f"{lang}_is_var", state["is_var"].get(lang, False))
+                for w, p in state["paths"].get(lang, {}).items(): setattr(self, f"{lang}_{w}", p)
+            if "merging_mode" in state["vars"]:
+                self.merging_mode_var.set(state["vars"]["merging_mode"])
+            if cleanup: os.remove(path)
         except: pass
 
     def update_log_visibility(self):
+        self.save_config()
         # تشغيل في خيط منفصل لمنع تجمد الواجهة
         threading.Thread(target=self._toggle_console, daemon=True).start()
 
@@ -250,21 +464,59 @@ class SyrianSegoeApp(ctk.CTk):
                 sys.stdout = open(os.devnull, 'w')
                 sys.stderr = open(os.devnull, 'w')
 
+    def toggle_italic_sections(self):
+        self.save_config()
+        self.update_idletasks()
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        if self.enable_italic_var.get():
+            self.regular_panel.grid_configure(column=0, columnspan=1, sticky="nsew")
+            self.italic_panel.grid()
+            self.selection_container.grid_columnconfigure(0, weight=1)
+            self.selection_container.grid_columnconfigure(1, weight=1)
+            width = min(980, max(820, int(screen_width * 0.65)))
+            height = min(820, max(720, int(screen_height * 0.75)))
+        else:
+            self.italic_panel.grid_remove()
+            self.regular_panel.grid_configure(column=0, columnspan=2, sticky="n")
+            self.selection_container.grid_columnconfigure(0, weight=1)
+            self.selection_container.grid_columnconfigure(1, weight=0)
+            width = min(900, max(760, int(screen_width * 0.55)))
+            height = min(760, max(700, int(screen_height * 0.72)))
+        x = max(0, (screen_width - width) // 2)
+        y = 20
+        self.geometry(f"{width}x{height}+{x}+{y}")
+
+    def change_merging_mode_event(self, choice):
+        if choice == self.t("mode_grid"):
+            self.merging_mode_var.set("grid")
+        else:
+            self.merging_mode_var.set("visual")
+        self.save_config()
+
     def select_frame(self, name):
         is_rtl = self.current_lang == "ar"
         content_col = 0 if is_rtl else 1
 
         # Update button colors
         self.home_btn.configure(fg_color=("gray75", "gray25") if name == "home" else "transparent")
+        self.font_size_nav_btn.configure(fg_color=("gray75", "gray25") if name == "font_size" else "transparent")
         self.settings_btn.configure(fg_color=("gray75", "gray25") if name == "settings" else "transparent")
 
         # Show/Hide frames
         if name == "home":
             self.home_frame.grid(row=0, column=content_col, sticky="nsew")
+            self.font_size_frame.grid_forget()
+            self.settings_frame.grid_forget()
+        elif name == "font_size":
+            self.update_font_size_ui()
+            self.font_size_frame.grid(row=0, column=content_col, sticky="nsew")
+            self.home_frame.grid_forget()
             self.settings_frame.grid_forget()
         else:
             self.settings_frame.grid(row=0, column=content_col, sticky="nsew")
             self.home_frame.grid_forget()
+            self.font_size_frame.grid_forget()
 
     def change_appearance_mode_event(self, choice):
         if choice == self.t("mode_light"): mode = "Light"
@@ -273,6 +525,7 @@ class SyrianSegoeApp(ctk.CTk):
         
         self.current_appearance_mode = mode
         ctk.set_appearance_mode(mode)
+        self.save_config()
         self.refresh_ui_text()
 
     def _theme_text_color(self):
@@ -294,6 +547,17 @@ class SyrianSegoeApp(ctk.CTk):
     def t(self, key, is_popup=False):
         return translations.get_text(key, self.current_lang, is_popup=is_popup)
 
+    def set_initial_geometry(self):
+        self.update_idletasks()
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        width = min(900, max(720, int(screen_width * 0.52)))
+        height = min(780, max(700, int(screen_height * 0.72)))
+        x = max(0, (screen_width - width) // 2)
+        y = 20
+        self.geometry(f"{width}x{height}+{x}+{y}")
+        self.minsize(720, 700)
+
     def detect_language(self):
         try:
             lang_id = ctypes.windll.kernel32.GetUserDefaultUILanguage()
@@ -305,6 +569,7 @@ class SyrianSegoeApp(ctk.CTk):
         mapping = {"English": "en", "Türkçe": "tr", "العربية": "ar"}
         if choice == "System Language": self.detect_language()
         else: self.current_lang = mapping[choice]
+        self.save_config()
         self.refresh_ui_text()
 
     def refresh_ui_text(self):
@@ -339,8 +604,24 @@ class SyrianSegoeApp(ctk.CTk):
 
         # Sidebar & Settings
         self.home_btn.configure(text=self.t("nav_home"), anchor=anchor)
+        self.font_size_nav_btn.configure(text=self.t("nav_font_size"), anchor=anchor)
         self.settings_btn.configure(text=self.t("nav_settings"), anchor=anchor)
         
+        self.font_size_title_lbl.configure(text=self.t("font_size_title"), text_color=theme_text)
+        self.entire_lbl.configure(text=self.t("font_size_entire"))
+        self.entire_apply_btn.configure(text=self.t("apply"))
+        self.indiv_title_lbl.configure(text=self.t("font_size_individual"))
+        self.indiv_apply_btn.configure(text=self.t("apply"))
+
+        for key, (lbl, trans_key) in self.fs_labels.items():
+            lbl.configure(text=self.t(trans_key), anchor=anchor)
+            lbl.pack_forget()
+            self.fs_controls[key].pack_forget()
+            lbl.pack(side=side)
+            self.fs_controls[key].pack(side=opp_side)
+
+        self.update_font_size_ui()
+
         # تحديث عنوان الإعدادات
         self.settings_title_lbl.configure(text=self.t("settings_title"), anchor=anchor, text_color=theme_text)
         self.settings_title_lbl.pack_configure(anchor=anchor)
@@ -350,6 +631,11 @@ class SyrianSegoeApp(ctk.CTk):
         
         self.lang_lbl.configure(text=self.t("lang_lbl"), text_color=theme_text)
         self.appearance_mode_lbl.configure(text=self.t("appearance_mode"), text_color=theme_text)
+        self.merging_mode_lbl.configure(text=self.t("settings_merging_mode"), text_color=theme_text)
+        
+        self.merging_mode_menu.configure(values=[self.t("mode_visual"), self.t("mode_grid")])
+        current_m = self.merging_mode_var.get()
+        self.merging_mode_menu.set(self.t("mode_visual" if current_m == "visual" else "mode_grid"))
         
         # Update OptionMenu values and selection
         self.appearance_mode_menu.configure(values=[self.t("mode_system"), self.t("mode_light"), self.t("mode_dark")])
@@ -365,6 +651,8 @@ class SyrianSegoeApp(ctk.CTk):
         self.save_font_chk.pack_configure(anchor=anchor, fill="none")
         self.clone_segoe_chk.configure(text=self.t("settings_clone_segoe"))
         self.clone_segoe_chk.pack_configure(anchor=anchor, fill="none")
+        self.enable_italic_chk.configure(text=self.t("settings_enable_italic"))
+        self.enable_italic_chk.pack_configure(anchor=anchor, fill="none")
 
         # إعادة توزيع عناصر قائمة اللغة في الإعدادات
         self.lang_lbl.pack_forget()
@@ -381,19 +669,35 @@ class SyrianSegoeApp(ctk.CTk):
         self.appearance_mode_lbl.pack(side=side, padx=10)
         self.appearance_mode_menu.pack(side=side, padx=10)
 
-        for lang in ["latin", "arabic"]:
+        merge_container = self.merging_mode_lbl.master
+        merge_container.pack_forget()
+        merge_container.pack(fill="x", padx=20, pady=10)
+        self.merging_mode_lbl.pack_forget()
+        self.merging_mode_menu.pack_forget()
+        self.merging_mode_lbl.pack(side=side, padx=10)
+        self.merging_mode_menu.pack(side=side, padx=10)
+
+        for lang in ["latin", "arabic", "latin_italic", "arabic_italic"]:
             # تحديث العناوين والأزرار في الأقسام (RTL Support)
             lbl = getattr(self, f"{lang}_sec_lbl")
             btn = getattr(self, f"{lang}_clear_btn")
-            lbl.configure(text=self.t(f"{lang}_sec"))
+            section_key = f"{lang}_sec" if lang in ["latin", "arabic"] else f"{lang.split('_')[0]}_italic_sec"
+            lbl.configure(text=self.t(section_key))
             btn.configure(text=self.t("clear"))
             lbl.pack_forget()
             btn.pack_forget()
             lbl.pack(side=side)
             btn.pack(side=opp_side)
 
-            getattr(self, f"{lang}_browse_btn").configure(text=self.t("browse").format(lang.capitalize()))
-            for weight_key in ["light", "semilight", "semibold", "bold", "black"]:
+            getattr(self, f"{lang}_sys_btn").configure(text=self.t("browse_system"))
+            getattr(self, f"{lang}_local_btn").configure(text=self.t("browse_file"))
+            getattr(self, f"{lang}_sys_btn").pack_forget()
+            getattr(self, f"{lang}_local_btn").pack_forget()
+            getattr(self, f"{lang}_sys_btn").pack(side=side, padx=5, expand=True)
+            getattr(self, f"{lang}_local_btn").pack(side=side, padx=5, expand=True)
+
+            weight_keys = getattr(self, f"{lang}_weight_keys", ["light", "semilight", "semibold", "bold", "black"])
+            for weight_key in weight_keys:
                 getattr(self, f"{lang}_{weight_key}_btn").configure(text=self.t(weight_key))
 
             # Update Labels based on current paths (for state recovery)
@@ -403,7 +707,7 @@ class SyrianSegoeApp(ctk.CTk):
                 text_color = "#FFA500" if getattr(self, f"{lang}_is_var") else theme_text
                 getattr(self, f"{lang}_lbl").configure(text=txt, text_color=text_color)
                 getattr(self, f"{lang}_frame").pack(pady=5)
-                for w in ["light", "semilight", "semibold", "bold", "black"]:
+                for w in weight_keys:
                     w_lbl = getattr(self, f"{lang}_{w}_lbl")
                     w_path = getattr(self, f"{lang}_{w}")
                     if getattr(self, f"{lang}_is_var"):
@@ -415,7 +719,7 @@ class SyrianSegoeApp(ctk.CTk):
             else:
                 getattr(self, f"{lang}_lbl").configure(text=self.t("no_file"), text_color="gray")
 
-    def setup_section(self, lang, title, parent_frame):
+    def setup_section(self, lang, title, parent_frame, browse_key="browse", weight_keys=None):
         section_frame = ctk.CTkFrame(parent_frame, fg_color="transparent"); section_frame.pack(pady=5, fill="x", padx=10)
         header_frame = ctk.CTkFrame(section_frame, fg_color="transparent"); header_frame.pack(fill="x")
         title_lbl = ctk.CTkLabel(header_frame, text=title, font=self.font_bold); title_lbl.pack(side="left")
@@ -425,9 +729,11 @@ class SyrianSegoeApp(ctk.CTk):
                                   command=lambda l=lang: self.unload_section(l), font=self.font_base)
         clear_btn.pack(side="right"); setattr(self, f"{lang}_clear_btn", clear_btn)
         
-        browse_btn = ctk.CTkButton(section_frame, text=self.t("browse").format(lang.capitalize()), 
-                                   command=lambda l=lang: self.select_regular(l), font=self.font_base)
-        browse_btn.pack(pady=5); setattr(self, f"{lang}_browse_btn", browse_btn)
+        btns_container = ctk.CTkFrame(section_frame, fg_color="transparent"); btns_container.pack(pady=5, fill="x")
+        sys_btn = ctk.CTkButton(btns_container, text=self.t("browse_system"), command=lambda l=lang: self.show_system_font_picker(l), font=self.font_base)
+        sys_btn.pack(side="left", padx=5, expand=True); setattr(self, f"{lang}_sys_btn", sys_btn)
+        local_btn = ctk.CTkButton(btns_container, text=self.t("browse_file"), command=lambda l=lang: self.select_regular_file(l), font=self.font_base)
+        local_btn.pack(side="left", padx=5, expand=True); setattr(self, f"{lang}_local_btn", local_btn)
         
         lbl = ctk.CTkLabel(section_frame, text=self.t("no_file"), text_color="gray", font=self.font_base); lbl.pack()
         setattr(self, f"{lang}_lbl", lbl)
@@ -435,13 +741,14 @@ class SyrianSegoeApp(ctk.CTk):
         frame = ctk.CTkFrame(section_frame, fg_color="transparent"); setattr(self, f"{lang}_frame", frame)
         
         # 5 Extra Weights Layout
-        weights = [
-            ("light", self.t("light"), 0, 0), 
-            ("semilight", self.t("semilight"), 0, 1), 
-            ("semibold", self.t("semibold"), 0, 2),
-            ("bold", self.t("bold"), 2, 0), 
-            ("black", self.t("black"), 2, 1)
-        ]
+        if weight_keys is None:
+            weight_keys = ["light", "semilight", "semibold", "bold", "black"]
+        setattr(self, f"{lang}_weight_keys", weight_keys)
+        weights = []
+        layout_positions = [(0,0), (0,1), (0,2), (2,0), (2,1)]
+        for idx, w_val in enumerate(weight_keys):
+            r, c = layout_positions[idx] if idx < len(layout_positions) else (2, idx - 2)
+            weights.append((w_val, self.t(w_val), r, c))
         
         for w_val, w_txt, r, c in weights:
             btn = ctk.CTkButton(frame, text=w_txt, width=100, command=lambda l=lang, w=w_val: self.select_weight(l, w), font=self.font_base)
@@ -450,7 +757,8 @@ class SyrianSegoeApp(ctk.CTk):
             w_lbl.grid(row=r+1, column=c); setattr(self, f"{lang}_{w_val}_lbl", w_lbl)
 
     def unload_section(self, lang):
-        for w in ["light", "semilight", "reg", "semibold", "bold", "black"]:
+        weight_keys = getattr(self, f"{lang}_weight_keys", ["light", "semilight", "semibold", "bold", "black"])
+        for w in ["reg"] + weight_keys:
             setattr(self, f"{lang}_{w}", None)
             if w != "reg":
                 getattr(self, f"{lang}_{w}_lbl").configure(text=self.t("none_lbl"), text_color="gray")
@@ -459,12 +767,14 @@ class SyrianSegoeApp(ctk.CTk):
         setattr(self, f"{lang}_is_var", False)
         getattr(self, f"{lang}_lbl").configure(text=self.t("no_file"), text_color="gray")
         getattr(self, f"{lang}_frame").pack_forget()
+        self.save_config()
 
     def run_backup(self):
         backup_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Original_Segoe_Backups")
         if not os.path.exists(backup_dir): os.makedirs(backup_dir)
         s_path = os.path.join(os.environ['WINDIR'], 'Fonts')
-        for f in ["segoeui.ttf", "segoeuib.ttf", "seguibl.ttf", "segoeuil.ttf", "segoeuisl.ttf", "seguisb.ttf", "SegUIVar.ttf"]:
+        for f in ["segoeui.ttf", "segoeuib.ttf", "seguibl.ttf", "segoeuil.ttf", "segoeuisl.ttf", "seguisb.ttf", "SegUIVar.ttf",
+                  "segoeuii.ttf", "segoeuiz.ttf", "seguili.ttf", "seguisli.ttf", "seguisbi.ttf", "seguibli.ttf"]:
             src = os.path.join(s_path, f)
             if os.path.exists(src): shutil.copy(src, backup_dir)
 
@@ -476,12 +786,19 @@ class SyrianSegoeApp(ctk.CTk):
         except Exception:
             return False
 
-    def select_regular(self, lang):
+    def select_regular_file(self, lang):
         path = filedialog.askopenfilename(filetypes=[("Font Files", "*.ttf *.otf")])
+        if path: self.apply_selected_font(path, lang)
+
+    def show_system_font_picker(self, lang):
+        SystemFontPicker(self, lambda p, n: self.apply_selected_font(p, lang, reg_name=n))
+
+    def apply_selected_font(self, path, lang, reg_name=None):
         if path:
             setattr(self, f"{lang}_reg", path)
             getattr(self, f"{lang}_frame").pack(pady=5)
             
+            weight_keys = getattr(self, f"{lang}_weight_keys", ["light", "semilight", "semibold", "bold", "black"])
             if self.is_variable_font(path):
                 setattr(self, f"{lang}_is_var", True)
                 getattr(self, f"{lang}_lbl").configure(
@@ -489,7 +806,7 @@ class SyrianSegoeApp(ctk.CTk):
                     text_color="#FFA500"
                 )
                 # Lock buttons and show Auto-Sliced tag
-                for w in ["light", "semilight", "semibold", "bold", "black"]:
+                for w in weight_keys:
                     getattr(self, f"{lang}_{w}_btn").configure(state="disabled")
                     getattr(self, f"{lang}_{w}_lbl").configure(text=self.t("auto_sliced"), text_color=self._theme_auto_tag_color())
             else:
@@ -497,30 +814,74 @@ class SyrianSegoeApp(ctk.CTk):
                 getattr(self, f"{lang}_lbl").configure(text=os.path.basename(path), text_color=self._theme_text_color())
                 
                 # Unlock buttons and auto-detect
-                for w in ["light", "semilight", "semibold", "bold", "black"]:
+                for w in weight_keys:
                     getattr(self, f"{lang}_{w}_btn").configure(state="normal")
                     getattr(self, f"{lang}_{w}_lbl").configure(text=self.t("none_lbl"), text_color="gray")
-                self.auto_detect(path, lang)
+                self.auto_detect(path, lang, reg_name=reg_name)
+            self.save_config()
 
-    def auto_detect(self, path, lang):
+    def auto_detect(self, path, lang, reg_name=None):
+        weight_keys = getattr(self, f"{lang}_weight_keys", ["light", "semilight", "semibold", "bold", "black"])
+        
+        # 1. الكشف بناءً على سجل النظام (Registry) - مخصص لخطوط النظام
+        if reg_name:
+            reg_path = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
+            try:
+                reg_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, reg_path)
+                # استخراج اسم العائلة الأساسي (مثلاً Segoe UI من Segoe UI Regular)
+                base_family = reg_name.split(" (")[0].split(" Regular")[0].strip().lower()
+                
+                for i in range(winreg.QueryInfoKey(reg_key)[1]):
+                    name, value, _ = winreg.EnumValue(reg_key, i)
+                    clean_reg_name = re.sub(r'\s*\(.*?\)$', '', name).lower()
+                    
+                    if clean_reg_name.startswith(base_family):
+                        full_path = value if os.path.isabs(value) else os.path.join(os.environ.get('WINDIR', 'C:\\Windows'), 'Fonts', value)
+                        if not os.path.exists(full_path): continue
+                        
+                        # التأكد من مطابقة نوع الخط (عادي أو مائل) للقسم الحالي
+                        is_italic_section = "italic" in lang
+                        if is_italic_section != ("italic" in clean_reg_name): continue
+
+                        for w in weight_keys:
+                            keywords = [w]
+                            if w == "black": keywords.append("heavy")
+                            
+                            if any(k in clean_reg_name for k in keywords):
+                                # تجنب الخلط بين الأوزان المتقاربة (مثل Light و Semilight)
+                                if w == "light" and "semi" in clean_reg_name: continue
+                                if w == "bold" and "semi" in clean_reg_name: continue
+                                
+                                if not getattr(self, f"{lang}_{w}"): # عدم استبدال اختيار يدوي
+                                    setattr(self, f"{lang}_{w}", full_path)
+                                    getattr(self, f"{lang}_{w}_lbl").configure(
+                                        text=self.t("auto_tag") + name.split(" (")[0], 
+                                        text_color=self._theme_auto_tag_color()
+                                    )
+                winreg.CloseKey(reg_key)
+            except: pass
+
+        # 2. الكشف بناءً على الملفات (Fallback) - للخطوط المحلية أو في حال فشل سجل النظام
         dir_p = os.path.dirname(path); prefix = os.path.basename(path).split("-")[0].split(" ")[0].lower()
         for f in os.listdir(dir_p):
             f_l = f.lower()
             if prefix in f_l and "italic" not in f_l:
                 full = os.path.join(dir_p, f)
-                if "light" in f_l and "semi" not in f_l:
+                if "light" in f_l and "semi" not in f_l and "light" in weight_keys:
                     setattr(self, f"{lang}_light", full)
                     getattr(self, f"{lang}_light_lbl").configure(text=self.t("auto_tag") + f, text_color=self._theme_auto_tag_color())
                 elif "semilight" in f_l or ("semi" in f_l and "light" in f_l):
-                    setattr(self, f"{lang}_semilight", full)
-                    getattr(self, f"{lang}_semilight_lbl").configure(text=self.t("auto_tag") + f, text_color=self._theme_auto_tag_color())
+                    if "semilight" in weight_keys:
+                        setattr(self, f"{lang}_semilight", full)
+                        getattr(self, f"{lang}_semilight_lbl").configure(text=self.t("auto_tag") + f, text_color=self._theme_auto_tag_color())
                 elif "semibold" in f_l or ("semi" in f_l and "bold" in f_l):
-                    setattr(self, f"{lang}_semibold", full)
-                    getattr(self, f"{lang}_semibold_lbl").configure(text=self.t("auto_tag") + f, text_color=self._theme_auto_tag_color())
-                elif "bold" in f_l and "semi" not in f_l:
+                    if "semibold" in weight_keys:
+                        setattr(self, f"{lang}_semibold", full)
+                        getattr(self, f"{lang}_semibold_lbl").configure(text=self.t("auto_tag") + f, text_color=self._theme_auto_tag_color())
+                elif "bold" in f_l and "semi" not in f_l and "bold" in weight_keys:
                     setattr(self, f"{lang}_bold", full)
                     getattr(self, f"{lang}_bold_lbl").configure(text=self.t("auto_tag") + f, text_color=self._theme_auto_tag_color())
-                elif "black" in f_l or "heavy" in f_l:
+                elif ("black" in f_l or "heavy" in f_l) and "black" in weight_keys:
                     setattr(self, f"{lang}_black", full)
                     getattr(self, f"{lang}_black_lbl").configure(text=self.t("auto_tag") + f, text_color=self._theme_auto_tag_color())
 
@@ -529,15 +890,43 @@ class SyrianSegoeApp(ctk.CTk):
         if path:
             setattr(self, f"{lang}_{weight}", path)
             getattr(self, f"{lang}_{weight}_lbl").configure(text=os.path.basename(path), text_color=self._theme_text_color())
+            self.save_config()
 
     def are_clones_installed(self):
-        """Checks if Segoe UI Clone is registered in the Windows Registry."""
+        """Checks if Segoe UI Clone is registered in the Windows Registry or exists in Fonts."""
         reg = r"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
+        clone_values = [
+            'Segoe UI Clone (TrueType)',
+            'Segoe UI Clone Bold (TrueType)',
+            'Segoe UI Clone Italic (TrueType)',
+            'Segoe UI Clone Bold Italic (TrueType)',
+            'Segoe UI Clone Light (TrueType)',
+            'Segoe UI Clone Light Italic (TrueType)',
+            'Segoe UI Clone Semilight (TrueType)',
+            'Segoe UI Clone Semilight Italic (TrueType)',
+            'Segoe UI Clone Semibold (TrueType)',
+            'Segoe UI Clone Semibold Italic (TrueType)',
+            'Segoe UI Clone Black (TrueType)',
+            'Segoe UI Clone Black Italic (TrueType)'
+        ]
         try:
-            cmd = ['reg', 'query', reg, '/v', 'Segoe UI Clone (TrueType)']
-            result = subprocess.run(cmd, capture_output=True, text=True, creationflags=0x08000000)
-            return result.returncode == 0
-        except: return False
+            for value in clone_values:
+                cmd = ['reg', 'query', reg, '/v', value]
+                result = subprocess.run(cmd, capture_output=True, text=True, creationflags=0x08000000)
+                if result.returncode == 0:
+                    return True
+        except:
+            pass
+
+        try:
+            f_dir = os.path.join(os.environ['WINDIR'], 'Fonts')
+            for f in os.listdir(f_dir):
+                if f.lower().startswith('clone_segoe'):
+                    return True
+        except:
+            pass
+
+        return False
 
     def restore_system(self):
         if not is_admin():
@@ -565,7 +954,13 @@ class SyrianSegoeApp(ctk.CTk):
                 ('Segoe UI Light (TrueType)', 'segoeuil.ttf'),
                 ('Segoe UI Semilight (TrueType)', 'segoeuisl.ttf'),
                 ('Segoe UI Semibold (TrueType)', 'seguisb.ttf'),
-                ('Segoe UI Variable (TrueType)', 'SegUIVar.ttf')
+                ('Segoe UI Variable (TrueType)', 'SegUIVar.ttf'),
+                ('Segoe UI Italic (TrueType)', 'segoeuii.ttf'),
+                ('Segoe UI Bold Italic (TrueType)', 'segoeuiz.ttf'),
+                ('Segoe UI Light Italic (TrueType)', 'seguili.ttf'),
+                ('Segoe UI Semilight Italic (TrueType)', 'seguisli.ttf'),
+                ('Segoe UI Semibold Italic (TrueType)', 'seguisbi.ttf'),
+                ('Segoe UI Black Italic (TrueType)', 'seguibli.ttf')
             ]
             for name, file in fonts_to_restore:
                 subprocess.run(['reg', 'add', reg, '/v', name, '/t', 'REG_SZ', '/d', file, '/f'], check=True)
@@ -575,7 +970,7 @@ class SyrianSegoeApp(ctk.CTk):
                 clone_keys = [
                     "Segoe UI Clone", "Segoe UI Clone Bold", "Segoe UI Clone Italic", "Segoe UI Clone Bold Italic",
                     "Segoe UI Clone Light", "Segoe UI Clone Light Italic", "Segoe UI Clone Semilight",
-                    "Segoe UI Clone Semilight Italic", "Segoe UI Clone Semibold", "Segoe UI Clone Semibold Italic", "Segoe UI Clone Black"
+                    "Segoe UI Clone Semilight Italic", "Segoe UI Clone Semibold", "Segoe UI Clone Semibold Italic", "Segoe UI Clone Black", "Segoe UI Clone Black Italic"
                 ]
                 for k in clone_keys:
                     subprocess.run(['reg', 'delete', reg, '/v', f"{k} (TrueType)", '/f'], capture_output=True, creationflags=0x08000000)
@@ -678,19 +1073,41 @@ class SyrianSegoeApp(ctk.CTk):
             l_paths = variable_slicer.resolve_weights(curr_dir, self.latin_is_var, self.latin_reg, self.latin_light, self.latin_semilight, self.latin_semibold, self.latin_bold, self.latin_black, "lat")
             a_paths = variable_slicer.resolve_weights(curr_dir, self.arabic_is_var, self.arabic_reg, self.arabic_light, self.arabic_semilight, self.arabic_semibold, self.arabic_bold, self.arabic_black, "ara")
             arabic_enabled = any(path != "NONE" for path in a_paths)
-            
+
+            italic_enabled = self.enable_italic_var.get() and bool(self.latin_italic_reg)
+            italic_output_exists = False
+            italic_l_paths = []
+            italic_a_paths = []
+            if italic_enabled:
+                italic_l_paths = variable_slicer.resolve_weights(curr_dir, self.latin_italic_is_var, self.latin_italic_reg,
+                    self.latin_italic_light, self.latin_italic_semilight, self.latin_italic_semibold, self.latin_italic_bold,
+                    self.latin_italic_black, "lati", weights=[300, 350, 400, 600, 700, 900])
+                italic_a_paths = variable_slicer.resolve_weights(curr_dir, self.arabic_italic_is_var, self.arabic_italic_reg,
+                    self.arabic_italic_light, self.arabic_italic_semilight, self.arabic_italic_semibold, self.arabic_italic_bold,
+                    self.arabic_italic_black, "arai", weights=[300, 350, 400, 600, 700, 900])
+                italic_output_exists = any(path != "NONE" for path in italic_l_paths)
+
             if self.latin_is_var: temp_files_to_clean.extend(l_paths)
             if self.arabic_is_var: temp_files_to_clean.extend(a_paths)
+            if self.latin_italic_is_var: temp_files_to_clean.extend(italic_l_paths)
+            if self.arabic_italic_is_var: temp_files_to_clean.extend(italic_a_paths)
 
             self.progress_bar.set(0.3)
             self.status_lbl.configure(text=self.t("prog_building").format("..."))
             var_spoof_path = os.path.join(curr_dir, "SegUIVar_system_mod.ttf")
             variable_slicer.create_variable_spoof(self.latin_reg, var_spoof_path)
+            m_mode = self.merging_mode_var.get()
 
-            # 3. Call FontForge Engine with progress tracking
-            # If show_log is enabled, the output will automatically go to the allocated console via sys.stdout/print
-            # but we still pipe it to capture full_log for saving to file.
-            args = [ff_exe, resource_path("engine.py")] + l_paths + a_paths
+            # 3. Select engine based on merging mode and call with progress tracking
+            m_mode = self.merging_mode_var.get()
+            engine_file = "engine.py" if m_mode == "visual" else "grid_sync_engine.py"
+            
+            args = [ff_exe, resource_path(engine_file)] + l_paths + a_paths
+            
+            # engine.py expects the mode as an extra argument, grid_sync_engine.py doesn't
+            if engine_file == "engine.py":
+                args.append(m_mode)
+
             process = subprocess.Popen(args, cwd=curr_dir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, creationflags=0x08000000)
 
             weight_progress_positions = {
@@ -734,7 +1151,26 @@ class SyrianSegoeApp(ctk.CTk):
             process.wait()
             if process.returncode != 0: raise Exception("FontForge Engine failed.")
 
-            self.after(0, lambda: self.progress_bar.set(0.9))
+            if italic_enabled and italic_output_exists:
+                self.after(0, lambda: self.progress_bar.set(0.92))
+                self.after(0, lambda: self.status_lbl.configure(text=self.t("prog_building").format(self.t("italic_fonts"))))
+                ital_engine = "engine_italic.py" if m_mode == "visual" else "grid_sync_engine_italic.py"
+                ital_args = [ff_exe, resource_path(ital_engine)] + italic_l_paths + italic_a_paths
+                if ital_engine == "engine_italic.py":
+                    ital_args.append(m_mode)
+                ital_process = subprocess.Popen(ital_args, cwd=curr_dir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, creationflags=0x08000000)
+                while True:
+                    line = ital_process.stdout.readline()
+                    if not line:
+                        break
+                    full_log += line
+                    if self.show_log_var.get():
+                        print(line, end="")
+                ital_process.wait()
+                if ital_process.returncode != 0:
+                    raise Exception("FontForge Italic Engine failed.")
+
+            self.after(0, lambda: self.progress_bar.set(0.95))
             self.after(0, lambda: self.status_lbl.configure(text=self.t("prog_applying")))
             
             # 4. Copy to Windows Fonts
@@ -750,6 +1186,15 @@ class SyrianSegoeApp(ctk.CTk):
                 ("seguibl_system_mod.ttf", "Segoe UI Black (TrueType)"),
                 ("SegUIVar_system_mod.ttf", "Segoe UI Variable (TrueType)")
             ]
+            if italic_enabled and italic_output_exists:
+                generated_fonts.extend([
+                    ("seguili_system_mod.ttf", "Segoe UI Light Italic (TrueType)"),
+                    ("seguisli_system_mod.ttf", "Segoe UI Semilight Italic (TrueType)"),
+                    ("segoeuii_system_mod.ttf", "Segoe UI Italic (TrueType)"),
+                    ("seguisbi_system_mod.ttf", "Segoe UI Semibold Italic (TrueType)"),
+                    ("segoeuiz_system_mod.ttf", "Segoe UI Bold Italic (TrueType)"),
+                    ("seguibli_system_mod.ttf", "Segoe UI Black Italic (TrueType)")
+                ])
             
             for file_name, reg_key in generated_fonts:
                 src = os.path.join(curr_dir, file_name)
@@ -788,6 +1233,7 @@ class SyrianSegoeApp(ctk.CTk):
             self.after(0, lambda: self.status_lbl.configure(text=self.t("status_ready")))
             for f in temp_files_to_clean:
                 if os.path.exists(f): os.remove(f)
+
 
 if __name__ == "__main__":
     app = SyrianSegoeApp()
