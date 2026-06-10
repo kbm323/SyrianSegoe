@@ -1,11 +1,7 @@
 
 > # Important Notes
-> By now, we have nearly hit 100 stars. A massive thanks to everyone who has explored and starred this project. I am deeply proud to have built a globally unique tool that takes a completely different, unconventional approach to Windows customization. 
-> 
-> While it's true that much of the code is written with the assistance of AI, bringing this vision to life is VERY FAR from automated. It requires countless hours of typography problem-solving, 
-testing many of the fonts and scenarios, and brainstorming new features —and I currently do all of this entirely **ON MY OWN.** 
-> 
-> Because of that, I want to remind everyone that this is an open-source initiative, and **contributions are always welcome!** Whether it's submitting pull requests or sharing ideas and solutions, your input is highly appreciated as I continue to push the boundaries of what this tool can do.
+> By now, we have hit 100 stars. A massive thanks to everyone who has explored and starred this project. I am deeply proud to have built a globally unique tool that takes a completely different, unconventional approach to Windows customization. 
+> I want to remind everyone that this is an open-source initiative, and **contributions are always welcome!** Whether it's submitting pull requests or sharing ideas and solutions, your input is highly appreciated as I continue to push the boundaries of what this tool can do.
 
 
 
