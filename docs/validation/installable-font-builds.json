@@ -1,0 +1,1365 @@
+{
+  "mode": "installable",
+  "system_modified": false,
+  "fonts": [
+    {
+      "file": "segoeuil_system_mod.ttf",
+      "sha256": "636c7a0396c020ba8da9e87bfdf8e2b0f893c1f77ce8f5547d6144eb83b3df1e",
+      "glyph_count": 33282,
+      "cmap_count": 31272,
+      "hangul_syllables": 11172,
+      "hangul_blocks": {
+        "U+1100-U+11FF": 256,
+        "U+3130-U+318F": 94,
+        "U+A960-U+A97F": 29,
+        "U+AC00-U+D7AF": 11172,
+        "U+D7B0-U+D7FF": 72
+      },
+      "family": [
+        "Segoe UI",
+        "Segoe UI Light"
+      ],
+      "weight": 300,
+      "metrics": {
+        "em": 2048,
+        "ascent": 2210,
+        "descent": -514,
+        "line_gap": 0,
+        "typo_ascent": 1491,
+        "typo_descent": -431,
+        "typo_line_gap": 269,
+        "win_ascent": 2210,
+        "win_descent": 514
+      },
+      "bounds": {
+        "y_min": -514,
+        "y_max": 2208
+      },
+      "test_text": "가나다라마바사아자차카타파하한글 Windows 시스템 글꼴 테스트ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789₩ $ € ¥→ ← ↑ ↓㈜ ① ② ③漢字",
+      "tables": [
+        "GDEF",
+        "GPOS",
+        "GSUB",
+        "GlyphOrder",
+        "OS/2",
+        "cmap",
+        "glyf",
+        "head",
+        "hhea",
+        "hmtx",
+        "loca",
+        "maxp",
+        "name",
+        "post",
+        "vhea",
+        "vmtx"
+      ],
+      "requires_visual_validation": true,
+      "sample_bounds": {
+        "H": {
+          "x_min": 172,
+          "x_max": 1268,
+          "y_min": 0,
+          "y_max": 1448
+        },
+        "a": {
+          "x_min": 93,
+          "x_max": 930,
+          "y_min": -25,
+          "y_max": 1101
+        },
+        "0": {
+          "x_min": 109,
+          "x_max": 1086,
+          "y_min": -20,
+          "y_max": 1468
+        },
+        "가": {
+          "x_min": 99,
+          "x_max": 1733,
+          "y_min": -156,
+          "y_max": 1609
+        },
+        "한": {
+          "x_min": 84,
+          "x_max": 1725,
+          "y_min": -114,
+          "y_max": 1607
+        },
+        "글": {
+          "x_min": 78,
+          "x_max": 1694,
+          "y_min": -132,
+          "y_max": 1531
+        },
+        "漢": {
+          "x_min": 100,
+          "x_max": 1948,
+          "y_min": -129,
+          "y_max": 1671
+        }
+      },
+      "test_text_bounds": {
+        "y_min": -430,
+        "y_max": 1684
+      },
+      "reference_metrics": {
+        "em": 2048,
+        "ascent": 2210,
+        "descent": -514,
+        "line_gap": 0,
+        "typo_ascent": 1491,
+        "typo_descent": -431,
+        "typo_line_gap": 269,
+        "win_ascent": 2210,
+        "win_descent": 514
+      },
+      "outline_exceeds_windows_bounds": false,
+      "outline_exceeds_hhea_bounds": false,
+      "test_text_exceeds_windows_bounds": false,
+      "source_sha256": "3090ccde0442bb347aa7685d9ba8b17436a60682df6e8f92a9a670de14056e22",
+      "reference_sha256": "866557576dfc772395301b581eccef4c0daf1dbb75f9667f26784b260bce7da1",
+      "reference_file": "segoeuil.ttf",
+      "source_weight": 300,
+      "fallback_codepoints": 2077,
+      "fitted_glyphs": 96,
+      "rollback": "Original files are read-only; no system changes were made",
+      "korean_fallback": {
+        "reference_file": "malgun.ttf",
+        "sha256": "7a183cf1c6c56b9609fcc16eda8b5229fbc11758a21e669ec00343239b02192f",
+        "codepoints": 14859
+      }
+    },
+    {
+      "file": "segoeuisl_system_mod.ttf",
+      "sha256": "ef714d52f0eab0c1c26f2d9f7f3e51976a6caf350b161c20683d283aed030af4",
+      "glyph_count": 33272,
+      "cmap_count": 31271,
+      "hangul_syllables": 11172,
+      "hangul_blocks": {
+        "U+1100-U+11FF": 256,
+        "U+3130-U+318F": 94,
+        "U+A960-U+A97F": 29,
+        "U+AC00-U+D7AF": 11172,
+        "U+D7B0-U+D7FF": 72
+      },
+      "family": [
+        "Segoe UI",
+        "Segoe UI Semilight"
+      ],
+      "weight": 350,
+      "metrics": {
+        "em": 2048,
+        "ascent": 2210,
+        "descent": -514,
+        "line_gap": 0,
+        "typo_ascent": 1491,
+        "typo_descent": -431,
+        "typo_line_gap": 269,
+        "win_ascent": 2210,
+        "win_descent": 514
+      },
+      "bounds": {
+        "y_min": -514,
+        "y_max": 2208
+      },
+      "test_text": "가나다라마바사아자차카타파하한글 Windows 시스템 글꼴 테스트ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789₩ $ € ¥→ ← ↑ ↓㈜ ① ② ③漢字",
+      "tables": [
+        "GDEF",
+        "GPOS",
+        "GSUB",
+        "GlyphOrder",
+        "OS/2",
+        "cmap",
+        "glyf",
+        "head",
+        "hhea",
+        "hmtx",
+        "loca",
+        "maxp",
+        "name",
+        "post",
+        "vhea",
+        "vmtx"
+      ],
+      "requires_visual_validation": true,
+      "sample_bounds": {
+        "H": {
+          "x_min": 166,
+          "x_max": 1278,
+          "y_min": 0,
+          "y_max": 1448
+        },
+        "a": {
+          "x_min": 89,
+          "x_max": 944,
+          "y_min": -25,
+          "y_max": 1101
+        },
+        "0": {
+          "x_min": 107,
+          "x_max": 1101,
+          "y_min": -20,
+          "y_max": 1468
+        },
+        "가": {
+          "x_min": 92,
+          "x_max": 1735,
+          "y_min": -159,
+          "y_max": 1613
+        },
+        "한": {
+          "x_min": 80,
+          "x_max": 1727,
+          "y_min": -119,
+          "y_max": 1611
+        },
+        "글": {
+          "x_min": 75,
+          "x_max": 1697,
+          "y_min": -137,
+          "y_max": 1534
+        },
+        "漢": {
+          "x_min": 100,
+          "x_max": 1948,
+          "y_min": -129,
+          "y_max": 1671
+        }
+      },
+      "test_text_bounds": {
+        "y_min": -430,
+        "y_max": 1684
+      },
+      "reference_metrics": {
+        "em": 2048,
+        "ascent": 2210,
+        "descent": -514,
+        "line_gap": 0,
+        "typo_ascent": 1491,
+        "typo_descent": -431,
+        "typo_line_gap": 269,
+        "win_ascent": 2210,
+        "win_descent": 514
+      },
+      "outline_exceeds_windows_bounds": false,
+      "outline_exceeds_hhea_bounds": false,
+      "test_text_exceeds_windows_bounds": false,
+      "source_sha256": "3090ccde0442bb347aa7685d9ba8b17436a60682df6e8f92a9a670de14056e22",
+      "reference_sha256": "3432de66f335c7e3058154f7cbb13ef051195653a544b49b1992267e558b33ef",
+      "reference_file": "segoeuisl.ttf",
+      "source_weight": 350,
+      "fallback_codepoints": 2076,
+      "fitted_glyphs": 198,
+      "rollback": "Original files are read-only; no system changes were made",
+      "korean_fallback": {
+        "reference_file": "malgun.ttf",
+        "sha256": "7a183cf1c6c56b9609fcc16eda8b5229fbc11758a21e669ec00343239b02192f",
+        "codepoints": 14859
+      }
+    },
+    {
+      "file": "segoeui_system_mod.ttf",
+      "sha256": "c16eba86fa5f95c27bbcd5f6de49342c4896af750cfe98a16f63379db85be952",
+      "glyph_count": 33284,
+      "cmap_count": 31272,
+      "hangul_syllables": 11172,
+      "hangul_blocks": {
+        "U+1100-U+11FF": 256,
+        "U+3130-U+318F": 94,
+        "U+A960-U+A97F": 29,
+        "U+AC00-U+D7AF": 11172,
+        "U+D7B0-U+D7FF": 72
+      },
+      "family": [
+        "Segoe UI"
+      ],
+      "weight": 400,
+      "metrics": {
+        "em": 2048,
+        "ascent": 2210,
+        "descent": -514,
+        "line_gap": 0,
+        "typo_ascent": 1491,
+        "typo_descent": -431,
+        "typo_line_gap": 269,
+        "win_ascent": 2210,
+        "win_descent": 514
+      },
+      "bounds": {
+        "y_min": -514,
+        "y_max": 2208
+      },
+      "test_text": "가나다라마바사아자차카타파하한글 Windows 시스템 글꼴 테스트ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789₩ $ € ¥→ ← ↑ ↓㈜ ① ② ③漢字",
+      "tables": [
+        "GDEF",
+        "GPOS",
+        "GSUB",
+        "GlyphOrder",
+        "OS/2",
+        "cmap",
+        "glyf",
+        "head",
+        "hhea",
+        "hmtx",
+        "loca",
+        "maxp",
+        "name",
+        "post",
+        "vhea",
+        "vmtx"
+      ],
+      "requires_visual_validation": true,
+      "sample_bounds": {
+        "H": {
+          "x_min": 160,
+          "x_max": 1288,
+          "y_min": 0,
+          "y_max": 1448
+        },
+        "a": {
+          "x_min": 86,
+          "x_max": 958,
+          "y_min": -26,
+          "y_max": 1100
+        },
+        "0": {
+          "x_min": 104,
+          "x_max": 1116,
+          "y_min": -20,
+          "y_max": 1468
+        },
+        "가": {
+          "x_min": 84,
+          "x_max": 1736,
+          "y_min": -162,
+          "y_max": 1616
+        },
+        "한": {
+          "x_min": 76,
+          "x_max": 1730,
+          "y_min": -124,
+          "y_max": 1614
+        },
+        "글": {
+          "x_min": 72,
+          "x_max": 1700,
+          "y_min": -142,
+          "y_max": 1538
+        },
+        "漢": {
+          "x_min": 100,
+          "x_max": 1948,
+          "y_min": -129,
+          "y_max": 1671
+        }
+      },
+      "test_text_bounds": {
+        "y_min": -430,
+        "y_max": 1684
+      },
+      "reference_metrics": {
+        "em": 2048,
+        "ascent": 2210,
+        "descent": -514,
+        "line_gap": 0,
+        "typo_ascent": 1491,
+        "typo_descent": -431,
+        "typo_line_gap": 269,
+        "win_ascent": 2210,
+        "win_descent": 514
+      },
+      "outline_exceeds_windows_bounds": false,
+      "outline_exceeds_hhea_bounds": false,
+      "test_text_exceeds_windows_bounds": false,
+      "source_sha256": "3090ccde0442bb347aa7685d9ba8b17436a60682df6e8f92a9a670de14056e22",
+      "reference_sha256": "8134dbcd09e7b123c9a7f229d49cffbcb01352cc72ea5e1076b65d0dca9f73cd",
+      "reference_file": "segoeui.ttf",
+      "source_weight": 400,
+      "fallback_codepoints": 2077,
+      "fitted_glyphs": 216,
+      "rollback": "Original files are read-only; no system changes were made",
+      "korean_fallback": {
+        "reference_file": "malgun.ttf",
+        "sha256": "7a183cf1c6c56b9609fcc16eda8b5229fbc11758a21e669ec00343239b02192f",
+        "codepoints": 14859
+      }
+    },
+    {
+      "file": "seguisb_system_mod.ttf",
+      "sha256": "d9538d247d8fb2841c32540f09579d025fc83c2ff94e28bc0a81cd2521fd6dd6",
+      "glyph_count": 33278,
+      "cmap_count": 31271,
+      "hangul_syllables": 11172,
+      "hangul_blocks": {
+        "U+1100-U+11FF": 256,
+        "U+3130-U+318F": 94,
+        "U+A960-U+A97F": 29,
+        "U+AC00-U+D7AF": 11172,
+        "U+D7B0-U+D7FF": 72
+      },
+      "family": [
+        "Segoe UI",
+        "Segoe UI Semibold"
+      ],
+      "weight": 600,
+      "metrics": {
+        "em": 2048,
+        "ascent": 2210,
+        "descent": -514,
+        "line_gap": 0,
+        "typo_ascent": 1491,
+        "typo_descent": -431,
+        "typo_line_gap": 269,
+        "win_ascent": 2210,
+        "win_descent": 514
+      },
+      "bounds": {
+        "y_min": -514,
+        "y_max": 2208
+      },
+      "test_text": "가나다라마바사아자차카타파하한글 Windows 시스템 글꼴 테스트ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789₩ $ € ¥→ ← ↑ ↓㈜ ① ② ③漢字",
+      "tables": [
+        "GDEF",
+        "GPOS",
+        "GSUB",
+        "GlyphOrder",
+        "OS/2",
+        "cmap",
+        "glyf",
+        "head",
+        "hhea",
+        "hmtx",
+        "loca",
+        "maxp",
+        "name",
+        "post",
+        "vhea",
+        "vmtx"
+      ],
+      "requires_visual_validation": true,
+      "sample_bounds": {
+        "H": {
+          "x_min": 135,
+          "x_max": 1330,
+          "y_min": 0,
+          "y_max": 1448
+        },
+        "a": {
+          "x_min": 72,
+          "x_max": 1008,
+          "y_min": -22,
+          "y_max": 1100
+        },
+        "0": {
+          "x_min": 98,
+          "x_max": 1210,
+          "y_min": -20,
+          "y_max": 1468
+        },
+        "가": {
+          "x_min": 52,
+          "x_max": 1744,
+          "y_min": -175,
+          "y_max": 1630
+        },
+        "한": {
+          "x_min": 61,
+          "x_max": 1739,
+          "y_min": -144,
+          "y_max": 1629
+        },
+        "글": {
+          "x_min": 61,
+          "x_max": 1713,
+          "y_min": -161,
+          "y_max": 1554
+        },
+        "漢": {
+          "x_min": 92,
+          "x_max": 1985,
+          "y_min": -154,
+          "y_max": 1712
+        }
+      },
+      "test_text_bounds": {
+        "y_min": -430,
+        "y_max": 1716
+      },
+      "reference_metrics": {
+        "em": 2048,
+        "ascent": 2210,
+        "descent": -514,
+        "line_gap": 0,
+        "typo_ascent": 1491,
+        "typo_descent": -431,
+        "typo_line_gap": 269,
+        "win_ascent": 2210,
+        "win_descent": 514
+      },
+      "outline_exceeds_windows_bounds": false,
+      "outline_exceeds_hhea_bounds": false,
+      "test_text_exceeds_windows_bounds": false,
+      "source_sha256": "3090ccde0442bb347aa7685d9ba8b17436a60682df6e8f92a9a670de14056e22",
+      "reference_sha256": "2d9b22d71f72de2823fee5d9c8bc1b0fc32b2577c4c27b9ec6abdbb8df0e1731",
+      "reference_file": "seguisb.ttf",
+      "source_weight": 600,
+      "fallback_codepoints": 2076,
+      "fitted_glyphs": 443,
+      "rollback": "Original files are read-only; no system changes were made",
+      "korean_fallback": {
+        "reference_file": "malgunbd.ttf",
+        "sha256": "e8cbc0b2afcc14fb45dfb6086d5102c0b23a96e7b6e708f3122acde1b86c9082",
+        "codepoints": 14859
+      }
+    },
+    {
+      "file": "segoeuib_system_mod.ttf",
+      "sha256": "ff68e295d2b9ae57625013bab66b43b9cb40614df1bcd41da9653709c4943fe1",
+      "glyph_count": 33281,
+      "cmap_count": 31271,
+      "hangul_syllables": 11172,
+      "hangul_blocks": {
+        "U+1100-U+11FF": 256,
+        "U+3130-U+318F": 94,
+        "U+A960-U+A97F": 29,
+        "U+AC00-U+D7AF": 11172,
+        "U+D7B0-U+D7FF": 72
+      },
+      "family": [
+        "Segoe UI"
+      ],
+      "weight": 700,
+      "metrics": {
+        "em": 2048,
+        "ascent": 2210,
+        "descent": -514,
+        "line_gap": 0,
+        "typo_ascent": 1491,
+        "typo_descent": -431,
+        "typo_line_gap": 269,
+        "win_ascent": 2210,
+        "win_descent": 514
+      },
+      "bounds": {
+        "y_min": -514,
+        "y_max": 2208
+      },
+      "test_text": "가나다라마바사아자차카타파하한글 Windows 시스템 글꼴 테스트ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789₩ $ € ¥→ ← ↑ ↓㈜ ① ② ③漢字",
+      "tables": [
+        "GDEF",
+        "GPOS",
+        "GSUB",
+        "GlyphOrder",
+        "OS/2",
+        "cmap",
+        "glyf",
+        "head",
+        "hhea",
+        "hmtx",
+        "loca",
+        "maxp",
+        "name",
+        "post",
+        "vhea",
+        "vmtx"
+      ],
+      "requires_visual_validation": true,
+      "sample_bounds": {
+        "H": {
+          "x_min": 123,
+          "x_max": 1351,
+          "y_min": 0,
+          "y_max": 1448
+        },
+        "a": {
+          "x_min": 64,
+          "x_max": 1033,
+          "y_min": -20,
+          "y_max": 1100
+        },
+        "0": {
+          "x_min": 95,
+          "x_max": 1258,
+          "y_min": -20,
+          "y_max": 1468
+        },
+        "가": {
+          "x_min": 35,
+          "x_max": 1747,
+          "y_min": -181,
+          "y_max": 1638
+        },
+        "한": {
+          "x_min": 53,
+          "x_max": 1744,
+          "y_min": -153,
+          "y_max": 1637
+        },
+        "글": {
+          "x_min": 55,
+          "x_max": 1719,
+          "y_min": -170,
+          "y_max": 1562
+        },
+        "漢": {
+          "x_min": 92,
+          "x_max": 1985,
+          "y_min": -154,
+          "y_max": 1712
+        }
+      },
+      "test_text_bounds": {
+        "y_min": -430,
+        "y_max": 1716
+      },
+      "reference_metrics": {
+        "em": 2048,
+        "ascent": 2210,
+        "descent": -514,
+        "line_gap": 0,
+        "typo_ascent": 1491,
+        "typo_descent": -431,
+        "typo_line_gap": 269,
+        "win_ascent": 2210,
+        "win_descent": 514
+      },
+      "outline_exceeds_windows_bounds": false,
+      "outline_exceeds_hhea_bounds": false,
+      "test_text_exceeds_windows_bounds": false,
+      "source_sha256": "3090ccde0442bb347aa7685d9ba8b17436a60682df6e8f92a9a670de14056e22",
+      "reference_sha256": "aeb9e4a6ec5cc59f4d72df8189032d7dbb28f45161cf1552174818b5465dac4e",
+      "reference_file": "segoeuib.ttf",
+      "source_weight": 700,
+      "fallback_codepoints": 2076,
+      "fitted_glyphs": 450,
+      "rollback": "Original files are read-only; no system changes were made",
+      "korean_fallback": {
+        "reference_file": "malgunbd.ttf",
+        "sha256": "e8cbc0b2afcc14fb45dfb6086d5102c0b23a96e7b6e708f3122acde1b86c9082",
+        "codepoints": 14859
+      }
+    },
+    {
+      "file": "seguibl_system_mod.ttf",
+      "sha256": "ebd4aad26f300090e454a1e15d6669af2b5817318658e2aaf71d840cb6f77a36",
+      "glyph_count": 31011,
+      "cmap_count": 29529,
+      "hangul_syllables": 11172,
+      "hangul_blocks": {
+        "U+1100-U+11FF": 256,
+        "U+3130-U+318F": 94,
+        "U+A960-U+A97F": 29,
+        "U+AC00-U+D7AF": 11172,
+        "U+D7B0-U+D7FF": 72
+      },
+      "family": [
+        "Segoe UI",
+        "Segoe UI Black"
+      ],
+      "weight": 900,
+      "metrics": {
+        "em": 2048,
+        "ascent": 2210,
+        "descent": -514,
+        "line_gap": 0,
+        "typo_ascent": 1491,
+        "typo_descent": -431,
+        "typo_line_gap": 269,
+        "win_ascent": 2210,
+        "win_descent": 514
+      },
+      "bounds": {
+        "y_min": -512,
+        "y_max": 2208
+      },
+      "test_text": "가나다라마바사아자차카타파하한글 Windows 시스템 글꼴 테스트ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789₩ $ € ¥→ ← ↑ ↓㈜ ① ② ③漢字",
+      "tables": [
+        "GDEF",
+        "GPOS",
+        "GSUB",
+        "GlyphOrder",
+        "OS/2",
+        "cmap",
+        "glyf",
+        "head",
+        "hhea",
+        "hmtx",
+        "loca",
+        "maxp",
+        "name",
+        "post",
+        "vhea",
+        "vmtx"
+      ],
+      "requires_visual_validation": true,
+      "sample_bounds": {
+        "H": {
+          "x_min": 98,
+          "x_max": 1394,
+          "y_min": 0,
+          "y_max": 1448
+        },
+        "a": {
+          "x_min": 50,
+          "x_max": 1083,
+          "y_min": -17,
+          "y_max": 1100
+        },
+        "0": {
+          "x_min": 89,
+          "x_max": 1352,
+          "y_min": -20,
+          "y_max": 1468
+        },
+        "가": {
+          "x_min": 3,
+          "x_max": 1755,
+          "y_min": -194,
+          "y_max": 1652
+        },
+        "한": {
+          "x_min": 38,
+          "x_max": 1753,
+          "y_min": -173,
+          "y_max": 1652
+        },
+        "글": {
+          "x_min": 44,
+          "x_max": 1732,
+          "y_min": -189,
+          "y_max": 1578
+        },
+        "漢": {
+          "x_min": 92,
+          "x_max": 1985,
+          "y_min": -154,
+          "y_max": 1712
+        }
+      },
+      "test_text_bounds": {
+        "y_min": -430,
+        "y_max": 1716
+      },
+      "reference_metrics": {
+        "em": 2048,
+        "ascent": 2210,
+        "descent": -514,
+        "line_gap": 0,
+        "typo_ascent": 1491,
+        "typo_descent": -431,
+        "typo_line_gap": 269,
+        "win_ascent": 2210,
+        "win_descent": 514
+      },
+      "outline_exceeds_windows_bounds": false,
+      "outline_exceeds_hhea_bounds": false,
+      "test_text_exceeds_windows_bounds": false,
+      "source_sha256": "3090ccde0442bb347aa7685d9ba8b17436a60682df6e8f92a9a670de14056e22",
+      "reference_sha256": "be191c94a0c7172870c3c87a136bd5aa67cdca7bc091de89242fb64ecb0f8fae",
+      "reference_file": "seguibl.ttf",
+      "source_weight": 900,
+      "fallback_codepoints": 334,
+      "fitted_glyphs": 34,
+      "rollback": "Original files are read-only; no system changes were made",
+      "korean_fallback": {
+        "reference_file": "malgunbd.ttf",
+        "sha256": "e8cbc0b2afcc14fb45dfb6086d5102c0b23a96e7b6e708f3122acde1b86c9082",
+        "codepoints": 14859
+      }
+    },
+    {
+      "file": "malgunsl_system_mod.ttf",
+      "sha256": "6ea6d154773cad96c14e55d65991c8cd129aac048a6e5a159f08ffc8b4377a30",
+      "glyph_count": 30101,
+      "cmap_count": 29346,
+      "hangul_syllables": 11172,
+      "hangul_blocks": {
+        "U+1100-U+11FF": 256,
+        "U+3130-U+318F": 94,
+        "U+A960-U+A97F": 29,
+        "U+AC00-U+D7AF": 11172,
+        "U+D7B0-U+D7FF": 72
+      },
+      "family": [
+        "Malgun Gothic",
+        "Malgun Gothic Semilight",
+        "맑은 고딕",
+        "맑은 고딕 Semilight"
+      ],
+      "weight": 300,
+      "metrics": {
+        "em": 2048,
+        "ascent": 2229,
+        "descent": -495,
+        "line_gap": 0,
+        "typo_ascent": 1638,
+        "typo_descent": -410,
+        "typo_line_gap": 0,
+        "win_ascent": 2229,
+        "win_descent": 495
+      },
+      "bounds": {
+        "y_min": -495,
+        "y_max": 2133
+      },
+      "test_text": "가나다라마바사아자차카타파하한글 Windows 시스템 글꼴 테스트ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789₩ $ € ¥→ ← ↑ ↓㈜ ① ② ③漢字",
+      "tables": [
+        "GDEF",
+        "GPOS",
+        "GSUB",
+        "GlyphOrder",
+        "OS/2",
+        "cmap",
+        "glyf",
+        "head",
+        "hhea",
+        "hmtx",
+        "loca",
+        "maxp",
+        "name",
+        "post",
+        "vhea",
+        "vmtx"
+      ],
+      "requires_visual_validation": true,
+      "sample_bounds": {
+        "H": {
+          "x_min": 172,
+          "x_max": 1268,
+          "y_min": 0,
+          "y_max": 1448
+        },
+        "a": {
+          "x_min": 93,
+          "x_max": 930,
+          "y_min": -25,
+          "y_max": 1101
+        },
+        "0": {
+          "x_min": 109,
+          "x_max": 1086,
+          "y_min": -20,
+          "y_max": 1468
+        },
+        "가": {
+          "x_min": 99,
+          "x_max": 1733,
+          "y_min": -156,
+          "y_max": 1609
+        },
+        "한": {
+          "x_min": 84,
+          "x_max": 1725,
+          "y_min": -114,
+          "y_max": 1607
+        },
+        "글": {
+          "x_min": 78,
+          "x_max": 1694,
+          "y_min": -132,
+          "y_max": 1531
+        },
+        "漢": {
+          "x_min": 100,
+          "x_max": 1948,
+          "y_min": -129,
+          "y_max": 1671
+        }
+      },
+      "test_text_bounds": {
+        "y_min": -430,
+        "y_max": 1684
+      },
+      "reference_metrics": {
+        "em": 2048,
+        "ascent": 2229,
+        "descent": -495,
+        "line_gap": 0,
+        "typo_ascent": 1638,
+        "typo_descent": -410,
+        "typo_line_gap": 0,
+        "win_ascent": 2229,
+        "win_descent": 495
+      },
+      "outline_exceeds_windows_bounds": false,
+      "outline_exceeds_hhea_bounds": false,
+      "test_text_exceeds_windows_bounds": false,
+      "source_sha256": "3090ccde0442bb347aa7685d9ba8b17436a60682df6e8f92a9a670de14056e22",
+      "reference_sha256": "c0ca810a242c4482594182db40f0f9d35a3d51bb2eeac750e6e867b2110eb00e",
+      "reference_file": "malgunsl.ttf",
+      "source_weight": 300,
+      "fallback_codepoints": 560,
+      "fitted_glyphs": 31,
+      "rollback": "Original files are read-only; no system changes were made",
+      "korean_fallback": {
+        "reference_file": "malgun.ttf",
+        "sha256": "7a183cf1c6c56b9609fcc16eda8b5229fbc11758a21e669ec00343239b02192f",
+        "codepoints": 14450
+      }
+    },
+    {
+      "file": "malgun_system_mod.ttf",
+      "sha256": "f8445e67644457e2c3535c96dbfe00c2ab933795a7394b3baef670fd5a9ef32b",
+      "glyph_count": 30779,
+      "cmap_count": 29351,
+      "hangul_syllables": 11172,
+      "hangul_blocks": {
+        "U+1100-U+11FF": 256,
+        "U+3130-U+318F": 94,
+        "U+A960-U+A97F": 29,
+        "U+AC00-U+D7AF": 11172,
+        "U+D7B0-U+D7FF": 72
+      },
+      "family": [
+        "Malgun Gothic",
+        "맑은 고딕"
+      ],
+      "weight": 400,
+      "metrics": {
+        "em": 2048,
+        "ascent": 2229,
+        "descent": -495,
+        "line_gap": 0,
+        "typo_ascent": 1638,
+        "typo_descent": -410,
+        "typo_line_gap": 0,
+        "win_ascent": 2229,
+        "win_descent": 495
+      },
+      "bounds": {
+        "y_min": -493,
+        "y_max": 2172
+      },
+      "test_text": "가나다라마바사아자차카타파하한글 Windows 시스템 글꼴 테스트ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789₩ $ € ¥→ ← ↑ ↓㈜ ① ② ③漢字",
+      "tables": [
+        "GDEF",
+        "GPOS",
+        "GSUB",
+        "GlyphOrder",
+        "OS/2",
+        "cmap",
+        "glyf",
+        "head",
+        "hhea",
+        "hmtx",
+        "loca",
+        "maxp",
+        "name",
+        "post",
+        "vhea",
+        "vmtx"
+      ],
+      "requires_visual_validation": true,
+      "sample_bounds": {
+        "H": {
+          "x_min": 160,
+          "x_max": 1288,
+          "y_min": 0,
+          "y_max": 1448
+        },
+        "a": {
+          "x_min": 86,
+          "x_max": 958,
+          "y_min": -26,
+          "y_max": 1100
+        },
+        "0": {
+          "x_min": 104,
+          "x_max": 1116,
+          "y_min": -20,
+          "y_max": 1468
+        },
+        "가": {
+          "x_min": 84,
+          "x_max": 1736,
+          "y_min": -162,
+          "y_max": 1616
+        },
+        "한": {
+          "x_min": 76,
+          "x_max": 1730,
+          "y_min": -124,
+          "y_max": 1614
+        },
+        "글": {
+          "x_min": 72,
+          "x_max": 1700,
+          "y_min": -142,
+          "y_max": 1538
+        },
+        "漢": {
+          "x_min": 100,
+          "x_max": 1948,
+          "y_min": -129,
+          "y_max": 1671
+        }
+      },
+      "test_text_bounds": {
+        "y_min": -430,
+        "y_max": 1684
+      },
+      "reference_metrics": {
+        "em": 2048,
+        "ascent": 2229,
+        "descent": -495,
+        "line_gap": 0,
+        "typo_ascent": 1638,
+        "typo_descent": -410,
+        "typo_line_gap": 0,
+        "win_ascent": 2229,
+        "win_descent": 495
+      },
+      "outline_exceeds_windows_bounds": false,
+      "outline_exceeds_hhea_bounds": false,
+      "test_text_exceeds_windows_bounds": false,
+      "source_sha256": "3090ccde0442bb347aa7685d9ba8b17436a60682df6e8f92a9a670de14056e22",
+      "reference_sha256": "7a183cf1c6c56b9609fcc16eda8b5229fbc11758a21e669ec00343239b02192f",
+      "reference_file": "malgun.ttf",
+      "source_weight": 400,
+      "fallback_codepoints": 15015,
+      "fitted_glyphs": 32,
+      "rollback": "Original files are read-only; no system changes were made"
+    },
+    {
+      "file": "malgunbd_system_mod.ttf",
+      "sha256": "7d601948032a30eb7b5de9f7ffa53b7ab5beae51d485c958bae373958ebab65b",
+      "glyph_count": 30774,
+      "cmap_count": 29351,
+      "hangul_syllables": 11172,
+      "hangul_blocks": {
+        "U+1100-U+11FF": 256,
+        "U+3130-U+318F": 94,
+        "U+A960-U+A97F": 29,
+        "U+AC00-U+D7AF": 11172,
+        "U+D7B0-U+D7FF": 72
+      },
+      "family": [
+        "Malgun Gothic",
+        "맑은 고딕"
+      ],
+      "weight": 700,
+      "metrics": {
+        "em": 2048,
+        "ascent": 2229,
+        "descent": -495,
+        "line_gap": 0,
+        "typo_ascent": 1638,
+        "typo_descent": -410,
+        "typo_line_gap": 0,
+        "win_ascent": 2229,
+        "win_descent": 495
+      },
+      "bounds": {
+        "y_min": -495,
+        "y_max": 2216
+      },
+      "test_text": "가나다라마바사아자차카타파하한글 Windows 시스템 글꼴 테스트ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789₩ $ € ¥→ ← ↑ ↓㈜ ① ② ③漢字",
+      "tables": [
+        "GDEF",
+        "GPOS",
+        "GSUB",
+        "GlyphOrder",
+        "OS/2",
+        "cmap",
+        "glyf",
+        "head",
+        "hhea",
+        "hmtx",
+        "loca",
+        "maxp",
+        "name",
+        "post",
+        "vhea",
+        "vmtx"
+      ],
+      "requires_visual_validation": true,
+      "sample_bounds": {
+        "H": {
+          "x_min": 123,
+          "x_max": 1351,
+          "y_min": 0,
+          "y_max": 1448
+        },
+        "a": {
+          "x_min": 64,
+          "x_max": 1033,
+          "y_min": -20,
+          "y_max": 1100
+        },
+        "0": {
+          "x_min": 95,
+          "x_max": 1258,
+          "y_min": -20,
+          "y_max": 1468
+        },
+        "가": {
+          "x_min": 35,
+          "x_max": 1747,
+          "y_min": -181,
+          "y_max": 1638
+        },
+        "한": {
+          "x_min": 53,
+          "x_max": 1744,
+          "y_min": -153,
+          "y_max": 1637
+        },
+        "글": {
+          "x_min": 55,
+          "x_max": 1719,
+          "y_min": -170,
+          "y_max": 1562
+        },
+        "漢": {
+          "x_min": 92,
+          "x_max": 1985,
+          "y_min": -154,
+          "y_max": 1712
+        }
+      },
+      "test_text_bounds": {
+        "y_min": -430,
+        "y_max": 1716
+      },
+      "reference_metrics": {
+        "em": 2048,
+        "ascent": 2229,
+        "descent": -495,
+        "line_gap": 0,
+        "typo_ascent": 1638,
+        "typo_descent": -410,
+        "typo_line_gap": 0,
+        "win_ascent": 2229,
+        "win_descent": 495
+      },
+      "outline_exceeds_windows_bounds": false,
+      "outline_exceeds_hhea_bounds": false,
+      "test_text_exceeds_windows_bounds": false,
+      "source_sha256": "3090ccde0442bb347aa7685d9ba8b17436a60682df6e8f92a9a670de14056e22",
+      "reference_sha256": "e8cbc0b2afcc14fb45dfb6086d5102c0b23a96e7b6e708f3122acde1b86c9082",
+      "reference_file": "malgunbd.ttf",
+      "source_weight": 700,
+      "fallback_codepoints": 15015,
+      "fitted_glyphs": 38,
+      "rollback": "Original files are read-only; no system changes were made"
+    },
+    {
+      "file": "SegUIVar_system_mod.ttf",
+      "sha256": "598e90abbd94d933a168f77c5e0f59abfcb0a82c83fb3cc34f75e16006b959bd",
+      "glyph_count": 31223,
+      "cmap_count": 29725,
+      "hangul_syllables": 11172,
+      "hangul_blocks": {
+        "U+1100-U+11FF": 256,
+        "U+3130-U+318F": 94,
+        "U+A960-U+A97F": 29,
+        "U+AC00-U+D7AF": 11172,
+        "U+D7B0-U+D7FF": 72
+      },
+      "family": [
+        "Segoe UI Variable"
+      ],
+      "weight": 400.0,
+      "metrics": {
+        "em": 2048,
+        "ascent": 2210,
+        "descent": -514,
+        "line_gap": 0,
+        "typo_ascent": 1491,
+        "typo_descent": -431,
+        "typo_line_gap": 269,
+        "win_ascent": 2210,
+        "win_descent": 514
+      },
+      "bounds": {
+        "y_min": -514,
+        "y_max": 2172
+      },
+      "test_text": "가나다라마바사아자차카타파하한글 Windows 시스템 글꼴 테스트ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789₩ $ € ¥→ ← ↑ ↓㈜ ① ② ③漢字",
+      "tables": [
+        "GDEF",
+        "GPOS",
+        "GSUB",
+        "GlyphOrder",
+        "HVAR",
+        "OS/2",
+        "STAT",
+        "VVAR",
+        "cmap",
+        "fvar",
+        "glyf",
+        "gvar",
+        "head",
+        "hhea",
+        "hmtx",
+        "loca",
+        "maxp",
+        "name",
+        "post",
+        "vhea",
+        "vmtx"
+      ],
+      "requires_visual_validation": true,
+      "sample_bounds": {
+        "H": {
+          "x_min": 160,
+          "x_max": 1288,
+          "y_min": 0,
+          "y_max": 1448
+        },
+        "a": {
+          "x_min": 86,
+          "x_max": 958,
+          "y_min": -26,
+          "y_max": 1100
+        },
+        "0": {
+          "x_min": 104,
+          "x_max": 1116,
+          "y_min": -20,
+          "y_max": 1468
+        },
+        "가": {
+          "x_min": 84,
+          "x_max": 1736,
+          "y_min": -162,
+          "y_max": 1616
+        },
+        "한": {
+          "x_min": 76,
+          "x_max": 1730,
+          "y_min": -124,
+          "y_max": 1614
+        },
+        "글": {
+          "x_min": 72,
+          "x_max": 1700,
+          "y_min": -142,
+          "y_max": 1538
+        },
+        "漢": {
+          "x_min": 100,
+          "x_max": 1948,
+          "y_min": -129,
+          "y_max": 1671
+        }
+      },
+      "test_text_bounds": {
+        "y_min": -430,
+        "y_max": 1684
+      },
+      "outline_exceeds_windows_bounds": false,
+      "outline_exceeds_hhea_bounds": false,
+      "test_text_exceeds_windows_bounds": false,
+      "source_sha256": "3090ccde0442bb347aa7685d9ba8b17436a60682df6e8f92a9a670de14056e22",
+      "reference_sha256": "27ca1ab4bd5ad3b0404ee6a9a03b143408dbd7e5a4c9e4b2054639c03fc0f682",
+      "reference_file": "SegUIVar.ttf",
+      "axes": [
+        {
+          "tag": "wght",
+          "min": 300.0,
+          "default": 400.0,
+          "max": 700.0
+        },
+        {
+          "tag": "opsz",
+          "min": 5.0,
+          "default": 10.5,
+          "max": 36.0
+        }
+      ],
+      "variable_samples": [
+        {
+          "weight": 300.0,
+          "bounds": {
+            "y_min": -513,
+            "y_max": 2133
+          }
+        },
+        {
+          "weight": 325,
+          "bounds": {
+            "y_min": -513,
+            "y_max": 2134
+          }
+        },
+        {
+          "weight": 350,
+          "bounds": {
+            "y_min": -513,
+            "y_max": 2146
+          }
+        },
+        {
+          "weight": 375,
+          "bounds": {
+            "y_min": -513,
+            "y_max": 2159
+          }
+        },
+        {
+          "weight": 400.0,
+          "bounds": {
+            "y_min": -514,
+            "y_max": 2172
+          }
+        },
+        {
+          "weight": 500,
+          "bounds": {
+            "y_min": -513,
+            "y_max": 2179
+          }
+        },
+        {
+          "weight": 600,
+          "bounds": {
+            "y_min": -512,
+            "y_max": 2194
+          }
+        },
+        {
+          "weight": 650,
+          "bounds": {
+            "y_min": -512,
+            "y_max": 2201
+          }
+        },
+        {
+          "weight": 700.0,
+          "bounds": {
+            "y_min": -512,
+            "y_max": 2208
+          }
+        }
+      ],
+      "layout_behavior": "default weight GSUB/GPOS across weights",
+      "optical_size_behavior": "accepted; Pretendard outlines invariant",
+      "fitted_glyphs": 66,
+      "reference_metrics": {
+        "em": 2048,
+        "ascent": 2210,
+        "descent": -514,
+        "line_gap": 0,
+        "typo_ascent": 1491,
+        "typo_descent": -431,
+        "typo_line_gap": 269,
+        "win_ascent": 2210,
+        "win_descent": 514
+      }
+    }
+  ],
+  "excluded": [
+    "Segoe Fluent Icons",
+    "Segoe MDL2 Assets",
+    "Segoe UI Emoji",
+    "Segoe UI Symbol"
+  ],
+  "static_mapping": {
+    "Segoe UI Semilight": "Pretendard Light (300); target metadata 350"
+  },
+  "apply_supported": true,
+  "schema": 1,
+  "optical_size_behavior": "accepted; Pretendard outlines invariant"
+}

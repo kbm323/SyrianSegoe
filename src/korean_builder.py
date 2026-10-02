@@ -437,9 +437,11 @@ def build_variable_font(source_path, reference_path, output_path):
                     check=inspect_font(path,None,set(source.getBestCmap()))
                     if check['outline_exceeds_windows_bounds'] or check['outline_exceeds_hhea_bounds']:
                         raise ValueError('Variable instance exceeds line bounds')
+                    if w == weight.defaultValue: default_report = check
                     samples.append({'weight':w,'bounds':check['bounds']})
                 candidate.replace(output_path)
-                report=check.copy();report.update(file=output_path.name,sha256=sha256(output_path),
+                report=default_report.copy();report.update(file=output_path.name,sha256=sha256(output_path),
+                    tables=sorted(variable.keys()),reference_metrics=metrics(reference),
                     family=sorted(font_families(variable)),weight=weight.defaultValue,
                     source_sha256=sha256(source_path),reference_sha256=sha256(reference_path),
                     reference_file=reference_path.name,axes=[{'tag':a.axisTag,'min':a.minValue,'default':a.defaultValue,'max':a.maxValue} for a in variable['fvar'].axes],

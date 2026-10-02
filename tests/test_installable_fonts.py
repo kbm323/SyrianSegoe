@@ -56,6 +56,8 @@ class InstallableTests(unittest.TestCase):
                     instance.close()
                 self.assertLess(advances[0], advances[-1])
             self.assertFalse(report['outline_exceeds_windows_bounds'])
+            self.assertIn('fvar', report['tables'])
+            self.assertIn('gvar', report['tables'])
 
     def test_installable_bundle_requires_variable_input_before_any_output(self):
         with tempfile.TemporaryDirectory() as tmp:

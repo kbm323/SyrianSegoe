@@ -182,24 +182,24 @@ GitHub에는 소스·테스트·문서·검증 숫자와 해시만 저장한다.
 일반 PowerShell에서 빌드와 설치 계획 검사를 실행합니다. 이 두 명령은 시스템을 변경하지 않습니다.
 
 ```powershell
-python src/korean_builder.py --installable `
+.venv\Scripts\python.exe src/korean_builder.py --installable `
   --source "C:\temp\Pretendard\public\variable\PretendardVariable.ttf" `
   --output "C:\temp\SyrianSegoe-Korean-installable"
-python src/font_transaction.py plan --build "C:\temp\SyrianSegoe-Korean-installable"
+.venv\Scripts\python.exe src/font_transaction.py plan --build "C:\temp\SyrianSegoe-Korean-installable"
 ```
 
-설치용 모드는 Segoe 6종, 맑은 고딕 3종, Segoe UI Variable 1종을 묶습니다. 기존 줄높이와 advance width는 유지하고 세로 범위를 초과한 예외 글리프만 baseline 기준으로 높이를 조정합니다. 영향을 받은 글리프 수는 보고서의 `fitted_glyphs`에 기록합니다. 일반 한글을 일괄 축소하지 않습니다. 조정된 글리프는 원래 디자인과 높이가 달라질 수 있으며 기존 hint 명령은 제거합니다. Variable의 모든 master는 같은 glyph topology와 조정 비율을 사용합니다. FontTools가 이 PC의 Windows 25H2 원본 SegUIVar GPOS variation 인덱스를 처리하지 못하는 문제를 피하려고 참조 보조 글리프는 기본 인스턴스의 GSUB와 윤곽을 사용합니다. Pretendard의 기본 굵기 GSUB/GPOS를 모든 Variable master에 동일하게 유지합니다. 가중치에 따라 달라지는 feature 선택과 kerning 보간은 재현하지 않습니다. 이는 master별 lookup 구조가 달라 합성이 실패하는 경우를 피하기 위한 제한입니다.
+설치용 모드는 Segoe 6종, 맑은 고딕 3종, Segoe UI Variable 1종을 묶습니다. Windows 원본의 줄높이 메트릭을 유지하고, 세로 조정 과정에서는 Pretendard의 가로 advance width를 변경하지 않습니다. 세로 범위를 초과한 예외 글리프만 baseline 기준으로 높이를 조정합니다. 영향을 받은 글리프 수는 보고서의 `fitted_glyphs`에 기록합니다. 일반 한글을 일괄 축소하지 않습니다. 조정된 글리프는 원래 디자인과 높이가 달라질 수 있으며 기존 hint 명령은 제거합니다. Variable의 모든 master는 같은 glyph topology와 조정 비율을 사용합니다. FontTools가 이 PC의 Windows 25H2 원본 SegUIVar GPOS variation 인덱스를 처리하지 못하는 문제를 피하려고 참조 보조 글리프는 기본 인스턴스의 GSUB와 윤곽을 사용합니다. Pretendard의 기본 굵기 GSUB/GPOS를 모든 Variable master에 동일하게 유지합니다. 가중치에 따라 달라지는 feature 선택과 kerning 보간은 재현하지 않습니다. 이는 master별 lookup 구조가 달라 합성이 실패하는 경우를 피하기 위한 제한입니다.
 
 적용을 결정한 뒤 **같은 Windows 사용자 계정의 관리자 PowerShell**에서 다음 명령을 실행합니다. apply만 시스템을 변경합니다. 기존 원본 파일을 덮어쓰지 않고 별도 생성 파일을 설치한 후 Fonts 레지스트리 연결을 바꿉니다. 실제 적용에는 재부팅이 필요합니다. 기존 FontSubstitutes에 해당 글꼴 대체 설정이 있으면 충돌을 피하도록 설치를 거절합니다. FontCache 삭제, 서비스 종료, 보호 해제, MacType 설치 및 자동 재부팅은 하지 않습니다.
 
 ```powershell
-python src/font_transaction.py apply --build "C:\temp\SyrianSegoe-Korean-installable"
+.venv\Scripts\python.exe src/font_transaction.py apply --build "C:\temp\SyrianSegoe-Korean-installable"
 ```
 
 백업/변경 기록/`Restore.reg`는 `%USERPROFILE%\Documents\SyrianSegoe\Original_Segoe_Backups`에 남습니다. 잠겨 삭제할 수 없는 생성 파일은 journal을 유지하며 재시작 후 다시 restore해야 합니다.
 
 ```powershell
-python src/font_transaction.py restore
+.venv\Scripts\python.exe src/font_transaction.py restore
 ```
 
 GUI/Python을 실행하기 어려울 때는 관리자 PowerShell에서 아래 **레지스트리 연결만 먼저 복원**한 뒤 재부팅합니다. 이후 정상 restore로 생성 파일을 정리합니다. REG 파일만으로 생성 파일이 삭제되지는 않습니다.
