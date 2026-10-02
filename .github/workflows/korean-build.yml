@@ -29,10 +29,78 @@ jobs:
         run: python -m PyInstaller --noconfirm --onefile --name SyrianSegoe-Korean-Build --paths src src/korean_builder.py
       - name: Package Korean installer without executing it
         run: python -m PyInstaller --noconfirm --onefile --name SyrianSegoe-Korean-Install --paths src src/font_transaction.py
+      - name: Assemble Windows download bundle
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path release/package -Force | Out-Null
+          Copy-Item dist/SyrianSegoe.exe release/package/SyrianSegoe-Korean.exe
+          Copy-Item dist/SyrianSegoe-Korean-Build.exe,dist/SyrianSegoe-Korean-Install.exe,README.ko.md,LICENSE release/package/
+          Copy-Item docs/release/QUICKSTART.ko.txt release/package/
+          Compress-Archive -Path release/package/* -DestinationPath release/SyrianSegoe-Korean-Windows-x64.zip
+          Copy-Item release/package/SyrianSegoe-Korean.exe release/
+          Get-ChildItem release -File | Sort-Object Name | ForEach-Object {
+            "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)"
+          } | Set-Content release/SHA256SUMS.txt -Encoding utf8
+          $archive = [IO.Compression.ZipFile]::OpenRead((Resolve-Path release/SyrianSegoe-Korean-Windows-x64.zip))
+          try {
+            foreach ($name in @('SyrianSegoe-Korean.exe','SyrianSegoe-Korean-Build.exe','SyrianSegoe-Korean-Install.exe','README.ko.md','LICENSE','QUICKSTART.ko.txt')) {
+              if ($name -notin $archive.Entries.FullName) { throw "Missing bundle file: $name" }
+            }
+            if ($archive.Entries.FullName -match '\.(ttf|otf)$') { throw 'Fonts must never be distributed in this bundle' }
+          } finally { $archive.Dispose() }
       - name: Upload GUI executable (no generated fonts)
         uses: actions/upload-artifact@v4
         with:
           name: SyrianSegoe-Korean-GUI
           path: dist/SyrianSegoe.exe
           retention-days: 14
+      - name: Upload release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: SyrianSegoe-Korean-Windows-x64
+          path: |
+            release/SyrianSegoe-Korean.exe
+            release/SyrianSegoe-Korean-Windows-x64.zip
+            release/SHA256SUMS.txt
+          retention-days: 14
       # No generated Windows/Pretendard fonts are published, and no install runs.
+  release:
+    needs: check
+    if: github.event_name == 'push' && github.repository == 'kbm323/SyrianSegoe' && github.ref == 'refs/heads/pretendard-korean-support'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: korean-release
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: SyrianSegoe-Korean-Windows-x64
+          path: release
+      - name: Verify and publish first Korean prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release
+          sha256sum --check SHA256SUMS.txt
+          tag=v0.5.0-ko.1
+          if gh release view "$tag" --json isDraft --jq '.isDraft' > existing.txt 2>/dev/null; then
+            if grep -qx false existing.txt; then
+              echo 'Published release already exists; preserving its assets.'
+              exit 0
+            fi
+            target=$(gh api "repos/$GH_REPO/git/ref/tags/$tag" --jq '.object.sha')
+            if [ "$target" != "$GITHUB_SHA" ]; then
+              echo 'Existing draft belongs to another commit; choose a new version before publishing.'
+              exit 1
+            fi
+          else
+            gh release create "$tag" --draft --prerelease --target "$GITHUB_SHA" --title 'SyrianSegoe Korean v0.5.0-ko.1 · Pretendard GUI' --notes-file ../docs/release/v0.5.0-ko.1.md
+          fi
+          gh release upload "$tag" SyrianSegoe-Korean.exe SyrianSegoe-Korean-Windows-x64.zip SHA256SUMS.txt --clobber
+          gh release edit "$tag" --draft=false --prerelease

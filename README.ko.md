@@ -6,7 +6,7 @@
 
 ## GUI로 사용하기
 
-1. [GitHub Actions](https://github.com/kbm323/SyrianSegoe/actions/workflows/korean-build.yml)에서 `pretendard-korean-support` 브랜치의 성공한 실행을 열고 **Artifacts → SyrianSegoe-Korean-GUI**를 다운로드합니다. GitHub 로그인이 필요하며 아티팩트는 14일간 보관합니다. ZIP을 풀고 `SyrianSegoe.exe`를 실행합니다. upstream Releases의 기존 EXE에는 한국어 기능이 없습니다.
+1. [릴리즈의 GUI EXE](https://github.com/kbm323/SyrianSegoe/releases/download/v0.5.0-ko.1/SyrianSegoe-Korean.exe)를 받아 실행합니다. 또는 [전체 ZIP](https://github.com/kbm323/SyrianSegoe/releases/download/v0.5.0-ko.1/SyrianSegoe-Korean-Windows-x64.zip)을 풀고 같은 EXE를 실행합니다. GitHub 로그인·Python 설치는 필요하지 않습니다. upstream Releases의 기존 EXE에는 한국어 기능이 없습니다. 테스트용 최신 빌드는 GitHub Actions의 `SyrianSegoe-Korean-GUI` 아티팩트에도 있으며 로그인 필요/14일 보관입니다.
 2. [공식 Pretendard 1.3.9 ZIP](https://github.com/orioncactus/pretendard/releases/tag/v1.3.9)을 풀고 홈 화면 위쪽 **한국어 Windows 11 · Pretendard → 1. Pretendard Variable 선택**에서 `public/variable/PretendardVariable.ttf`를 선택합니다. JP, Static, OTF는 설치용 GUI 입력으로 지원하지 않습니다.
 3. **2. 빌드·검증 (시스템 변경 없음)**을 누르고 패키지를 보관할 폴더를 고릅니다. 해당 폴더에 새 `Pretendard-…` 하위 폴더를 만듭니다. 기존 파일을 덮어쓰지 않으며 수 분 걸릴 수 있습니다. FontForge와 관리자 권한은 필요하지 않습니다.
 4. 완료 안내와 패키지 경로를 확인한 뒤 **3. 검증된 글꼴 적용**을 누릅니다. 이 버튼부터 시스템 변경을 수행합니다. 확인 창과 Windows 관리자 권한 요청을 승인하면 창이 다시 열립니다. 같은 Windows 사용자 계정을 사용하고 **적용 버튼을 다시 누릅니다.** 권한 상승 직후 자동 설치하지 않습니다. 패키지와 현재 Windows 원본은 적용 전에 다시 검증합니다.

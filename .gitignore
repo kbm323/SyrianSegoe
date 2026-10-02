@@ -11,3 +11,5 @@ korean-builds/
 .korean-build-*/
 
 .venv/
+
+release/

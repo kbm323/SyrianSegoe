@@ -1,0 +1,21 @@
+SyrianSegoe Korean · Windows 11 x64 · v0.5.0-ko.1
+
+1. SyrianSegoe-Korean.exe를 실행합니다. Python/FontForge 설치는 필요하지 않습니다.
+2. 공식 일반판 Pretendard ZIP을 풀고 public/variable/PretendardVariable.ttf를 준비합니다.
+   https://github.com/orioncactus/pretendard/releases/tag/v1.3.9
+3. 홈 위쪽 한국어 영역에서 글꼴 선택 → 빌드·검증 → 패키지를 보관할 폴더 선택.
+4. 완료 후 적용. 관리자 권한으로 다시 열리면 적용 버튼을 다시 누릅니다.
+5. 작업을 저장하고 직접 재부팅합니다.
+6. 문제 발생 시 원본 복원 / Restore. 관리자 창에서 다시 복원을 누르고 재부팅합니다.
+
+빌드만으로 시스템을 변경하지 않습니다. 원본 백업과 복원 기록은 다음 폴더에 남습니다.
+%USERPROFILE%\Documents\SyrianSegoe\Original_Segoe_Backups
+
+알려진 제한: 빌드는 수 분 이상 걸릴 수 있고 진행 막대는 중간에 증가하지 않습니다.
+빌드 중 창 닫기를 막습니다. 완료 안내가 나오기 전에는 적용되지 않습니다.
+실제 Windows 전체 UI/재부팅 후 복원은 미검증입니다. 일부 UI는 원래 글꼴을 유지할 수 있습니다.
+이 EXE는 서명되지 않았습니다. 앱 제어로 차단되면 정책을 끄지 말고 README의 소스 실행 방법을 사용하세요.
+
+GUI만 필요하면 EXE 하나로 충분합니다. Build/Install EXE는 고급 명령줄 사용용입니다.
+Windows 원본이나 Pretendard/생성 폰트는 이 배포에 포함되지 않습니다.
+자세한 설명: https://github.com/kbm323/SyrianSegoe/blob/pretendard-korean-support/README.ko.md
