@@ -127,11 +127,9 @@ def cleanup_unused_glyphs(font, preserve_arabic_joining=False, remove_kern_looku
             problematic_glyphs.update({'uni200C', 'uni200D', 'uni200E', 'uni200F'})
         
         glyphs_to_remove = []
-        glyph_count = len(font.glyphs())
-        for i in range(glyph_count):
+        for glyph in list(font.glyphs()):
             try:
-                glyph = font.glyphs()[i]
-                glyph_name = glyph.name
+                glyph_name = glyph.glyphname
                 if protected_korean_glyph(glyph):
                     continue
                 if glyph_name in problematic_glyphs:

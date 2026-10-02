@@ -100,6 +100,20 @@ class BuilderTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'output'):
                 builder.build_all(root / 'input', root / 'Fonts', root / 'Fonts', include_malgun=True)
 
+    def test_single_static_input_is_not_silently_used_for_all_weights(self):
+        builder = self.builder()
+        from font_targets import ALL_TARGETS
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'refs').mkdir()
+            chars = set(range(0xAC00, 0xD7A4)) | {ord(c) for c in builder.TEST_TEXT}
+            make_font(root / 'source.ttf', codepoints=chars)
+            for target in ALL_TARGETS:
+                make_font(root / 'refs' / target.filename, target.family, {0x41})
+            with self.assertRaisesRegex(ValueError, 'Variable'):
+                builder.build_all(root / 'source.ttf', root / 'refs', root / 'output')
+            self.assertFalse((root / 'output').exists())
+
 
 if __name__ == '__main__':
     unittest.main()

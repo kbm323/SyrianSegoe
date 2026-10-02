@@ -138,12 +138,10 @@ def cleanup_unused_glyphs(font, preserve_arabic_joining=False, remove_kern_looku
         
         glyphs_to_remove = []
         
-        # Use numeric loop instead of direct iteration to avoid hash issues
-        glyph_count = len(font.glyphs())
-        for i in range(glyph_count):
+        # Snapshot the FontForge iterator before removing glyphs
+        for glyph in list(font.glyphs()):
             try:
-                glyph = font.glyphs()[i]
-                glyph_name = glyph.name
+                glyph_name = glyph.glyphname
                 
                 # Check if it's in problematic list
                 if protected_korean_glyph(glyph):

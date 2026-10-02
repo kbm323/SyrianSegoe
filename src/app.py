@@ -6,6 +6,10 @@ import translations
 import segoe_cloner
 import variable_slicer
 import font_resizer
+from font_backup import backup_originals, persistent_state_dir
+from font_transaction import install_font_set, restore_font_set, WindowsRegistry, ALLOWED, JOURNAL
+from glyph_policy import is_hangul
+from fontTools.ttLib import TTFont
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
@@ -770,13 +774,10 @@ class SyrianSegoeApp(ctk.CTk):
         self.save_config()
 
     def run_backup(self):
-        backup_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Original_Segoe_Backups")
+        backup_dir = persistent_state_dir()
         if not os.path.exists(backup_dir): os.makedirs(backup_dir)
         s_path = os.path.join(os.environ['WINDIR'], 'Fonts')
-        for f in ["segoeui.ttf", "segoeuib.ttf", "seguibl.ttf", "segoeuil.ttf", "segoeuisl.ttf", "seguisb.ttf", "SegUIVar.ttf",
-                  "segoeuii.ttf", "segoeuiz.ttf", "seguili.ttf", "seguisli.ttf", "seguisbi.ttf", "seguibli.ttf"]:
-            src = os.path.join(s_path, f)
-            if os.path.exists(src): shutil.copy(src, backup_dir)
+        self.backup_report = backup_originals(s_path, backup_dir)
 
     def is_variable_font(self, path):
         try:
@@ -947,6 +948,9 @@ class SyrianSegoeApp(ctk.CTk):
 
         reg = r"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
         try:
+            state_dir = persistent_state_dir()
+            fonts_dir = os.path.join(os.environ['WINDIR'], 'Fonts')
+            restored_journal = restore_font_set(state_dir, WindowsRegistry(), fonts_dir)
             fonts_to_restore = [
                 ('Segoe UI (TrueType)', 'segoeui.ttf'),
                 ('Segoe UI Bold (TrueType)', 'segoeuib.ttf'),
@@ -962,8 +966,10 @@ class SyrianSegoeApp(ctk.CTk):
                 ('Segoe UI Semibold Italic (TrueType)', 'seguisbi.ttf'),
                 ('Segoe UI Black Italic (TrueType)', 'seguibli.ttf')
             ]
-            for name, file in fonts_to_restore:
-                subprocess.run(['reg', 'add', reg, '/v', name, '/t', 'REG_SZ', '/d', file, '/f'], check=True)
+            if not restored_journal:
+                # Compatibility with upstream installs that predate journals.
+                for name, file in fonts_to_restore:
+                    subprocess.run(['reg', 'add', reg, '/v', name, '/t', 'REG_SZ', '/d', file, '/f'], check=True)
             
             if delete_clones:
                 f_dir = os.path.join(os.environ['WINDIR'], 'Fonts')
@@ -1011,6 +1017,10 @@ class SyrianSegoeApp(ctk.CTk):
             return False
     def check_system_state(self):
         """Checks if modded fonts are active in registry or need cleanup"""
+        state_dir = persistent_state_dir()
+        if os.path.exists(os.path.join(state_dir, JOURNAL)):
+            messagebox.showerror('Restore required', self.t('err_restore_first', is_popup=True))
+            return False
         reg_path = r"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
         try:
             # Check if Segoe UI is pointing to a modded file
@@ -1028,8 +1038,9 @@ class SyrianSegoeApp(ctk.CTk):
             if mod_exists:
                 # Registry is original, but files exist. Safe to delete and proceed.
                 self.status_lbl.configure(text=self.t("prog_cleaning"))
+                allowed_outputs = {file for file, _ in ALLOWED}
                 for f in os.listdir(f_dir):
-                    if "_system_mod.ttf" in f:
+                    if f in allowed_outputs:
                         try: os.remove(os.path.join(f_dir, f))
                         except: pass
             return True
@@ -1038,6 +1049,23 @@ class SyrianSegoeApp(ctk.CTk):
     def build_and_apply(self):
         if not self.latin_reg: 
             messagebox.showerror("Error", self.t("sel_err", is_popup=True))
+            return
+        try:
+            input_paths = {getattr(self, prefix + '_' + weight, None)
+                           for prefix in ('latin', 'arabic', 'latin_italic', 'arabic_italic')
+                           for weight in ('reg', 'light', 'semilight', 'semibold', 'bold', 'black')}
+            korean_input = False
+            for path in input_paths - {None}:
+                with TTFont(path) as selected_font:
+                    korean_input = korean_input or any(is_hangul(cp) for cp in (selected_font.getBestCmap() or {}))
+            if korean_input:
+                messagebox.showinfo('Korean build-only support',
+                    '한국어 글꼴의 시스템 적용은 아직 지원하지 않습니다.\n'
+                    'README.ko.md의 korean_builder.py 빌드 전용 명령을 사용하세요.\n'
+                    '시스템 글꼴이나 레지스트리는 변경하지 않습니다.')
+                return
+        except Exception as exc:
+            messagebox.showerror('Invalid font', str(exc))
             return
         if not is_admin():
             if messagebox.askyesno("Admin", self.t("admin_confirm", is_popup=True)):
@@ -1196,11 +1224,8 @@ class SyrianSegoeApp(ctk.CTk):
                     ("seguibli_system_mod.ttf", "Segoe UI Black Italic (TrueType)")
                 ])
             
-            for file_name, reg_key in generated_fonts:
-                src = os.path.join(curr_dir, file_name)
-                if os.path.exists(src):
-                    subprocess.run(['cmd', '/c', 'copy', '/y', src, os.path.join(f_dir, file_name)], check=True)
-                    subprocess.run(['reg', 'add', reg, '/v', reg_key, '/t', 'REG_SZ', '/d', file_name, '/f'], check=True)
+            install_font_set(curr_dir, f_dir,
+                persistent_state_dir(), generated_fonts, WindowsRegistry())
 
             # 5. Handle Extra Settings (Save Log & Save Font)
             app_docs_path = os.path.join(os.path.expanduser("~"), 'Documents', 'SyrianSegoe')
@@ -1220,7 +1245,7 @@ class SyrianSegoeApp(ctk.CTk):
 
             # 5. Optional: Clone Original Segoe UI
             if self.clone_segoe_var.get():
-                backup_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Original_Segoe_Backups")
+                backup_dir = persistent_state_dir()
                 segoe_cloner.clone_original_segoe(backup_dir)
 
             self.after(0, lambda: self.progress_bar.set(1.0))

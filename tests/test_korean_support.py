@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT / 'src'))
 
 class Glyph:
     def __init__(self, name, unicode, altuni=None):
-        self.name, self.unicode, self.altuni = name, unicode, altuni
+        self.glyphname, self.unicode, self.altuni = name, unicode, altuni
 
 
 class Font:
@@ -24,10 +24,10 @@ class Font:
         self.gpos_lookups = ['kern', 'hangul_position']
 
     def glyphs(self):
-        return self.items
+        return iter(self.items)
 
     def removeGlyph(self, name):
-        self.items = [g for g in self.items if g.name != name]
+        self.items = [g for g in self.items if g.glyphname != name]
 
     def removeLookup(self, name):
         for lookups in (self.gsub_lookups, self.gpos_lookups):
@@ -50,6 +50,13 @@ def load_engine(path):
 
 
 class CleanupTests(unittest.TestCase):
+    def test_unprotected_problematic_glyph_is_still_removed(self):
+        for path in (ROOT / 'src').glob('*engine*.py'):
+            with self.subTest(engine=path.name):
+                engine = load_engine(path)
+                font = Font([Glyph('uniAC00', 0xAC00), Glyph('uniF8FF', 0xF8FF)])
+                engine['cleanup_unused_glyphs'](font)
+                self.assertEqual([g.glyphname for g in font.items], ['uniAC00'])
     def test_missing_reference_causes_nonzero_engine_exit(self):
         for path in (ROOT / 'src').glob('*engine*.py'):
             with self.subTest(engine=path.name), tempfile.TemporaryDirectory() as tmp:

@@ -251,6 +251,10 @@ def build_all(source, references, output, include_malgun=True):
     guard_output(output, references)
     if output.exists():
         raise ValueError('Choose a new output directory; existing builds are never overwritten')
+    if source.is_file():
+        with TTFont(source) as input_font:
+            if 'fvar' not in input_font:
+                raise ValueError('A single file must be Pretendard Variable; use a directory for Static weights')
     targets = SEGOE_TARGETS + (MALGUN_TARGETS if include_malgun else ())
     for target in targets:
         if not (references / target.filename).is_file():
