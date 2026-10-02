@@ -159,12 +159,13 @@ jobs:
           set -euo pipefail
           python3 scripts/package_release.py verify release
           gh release create "$RELEASE_VERSION" \
-            release/SyrianSegoe-Korean.exe \
-            release/SyrianSegoe-Korean-Windows-x64.zip \
-            release/SHA256SUMS.txt \
             --verify-tag --draft --prerelease \
             --title "SyrianSegoe Korean $RELEASE_VERSION · Windows 11 × Pretendard" \
             --notes-file release/RELEASE_NOTES.md
+          gh release upload "$RELEASE_VERSION" \
+            release/SyrianSegoe-Korean.exe \
+            release/SyrianSegoe-Korean-Windows-x64.zip \
+            release/SHA256SUMS.txt
           gh release download "$RELEASE_VERSION" --dir uploaded \
             --pattern SyrianSegoe-Korean.exe \
             --pattern SyrianSegoe-Korean-Windows-x64.zip \

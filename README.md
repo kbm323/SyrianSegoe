@@ -10,10 +10,12 @@
 ![Windows 11 x64](https://img.shields.io/badge/Windows_11-x64-0078D4?logo=windows11&logoColor=white)
 ![Pretendard](https://img.shields.io/badge/Pretendard-1.3.9-4F46E5)
 ![사전 릴리즈](https://img.shields.io/badge/status-prerelease-F59E0B)
-[![Windows release](https://github.com/kbm323/SyrianSegoe/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/kbm323/SyrianSegoe/actions/workflows/release.yml)
+[![Windows release](https://github.com/kbm323/SyrianSegoe/actions/workflows/release.yml/badge.svg)](https://github.com/kbm323/SyrianSegoe/actions/workflows/release.yml)
 [![MIT](https://img.shields.io/badge/license-MIT-16A34A)](LICENSE)
 
-**[다운로드 · Releases](https://github.com/kbm323/SyrianSegoe/releases)** ·
+**[GUI EXE 다운로드](https://github.com/kbm323/SyrianSegoe/releases/download/v0.5.0-ko.1/SyrianSegoe-Korean.exe)** ·
+[전체 Windows x64 ZIP](https://github.com/kbm323/SyrianSegoe/releases/download/v0.5.0-ko.1/SyrianSegoe-Korean-Windows-x64.zip) ·
+[릴리즈 안내](https://github.com/kbm323/SyrianSegoe/releases/tag/v0.5.0-ko.1) ·
 [한국어 사용법](https://github.com/kbm323/SyrianSegoe/blob/pretendard-korean-support/README.ko.md) ·
 [문제 보고](https://github.com/kbm323/SyrianSegoe/issues)
 
@@ -25,17 +27,15 @@ SyrianTurk/SyrianSegoe의 기존 GUI·빌드·설치·복원을 재사용한 한
 일반판 **Pretendard Variable**로 Segoe UI와 맑은 고딕용 글꼴을 만들고, 검사한 뒤 별도로 적용합니다.
 GUI 실행에는 Python·FontForge 설치가 필요하지 않습니다.
 
-> **배포 준비 중:** 현재 공개 Releases에는 실행 파일이 없습니다. 아래 파일은 게시될 패키지의 구성입니다. 공개 후 위 **다운로드 · Releases**에서 받을 수 있습니다. 먼저 사용하려면 [한국어 소스 실행 안내](https://github.com/kbm323/SyrianSegoe/blob/pretendard-korean-support/README.ko.md)를 참고하세요.
->
-> 실제 Windows 전체 UI와 재부팅 후 적용·복원은 아직 미검증입니다. 사전 릴리즈로 제공하며 모든 화면의 글꼴 통일을 보장하지 않습니다.
+> **v0.5.0-ko.1 사전 릴리즈:** Windows CI에서 앱 테스트, GUI·CLI 빌드, GUI 창 열기, CLI 도움말 실행과 공개 다운로드 해시를 검증했습니다. 실제 Windows 전체 UI와 재부팅 후 적용·복원은 아직 미검증이며 모든 화면의 글꼴 통일을 보장하지 않습니다.
 
 ## 다운로드 선택
 
 | 원하는 사용 방식 | 선택할 파일 | 포함 내용 |
 | --- | --- | --- |
-| **GUI로 시작하기** | `SyrianSegoe-Korean.exe` | 바로 실행하는 GUI |
-| **도구와 안내를 함께 보관하기** | `SyrianSegoe-Korean-Windows-x64.zip` | GUI + 빌드·설치 CLI + 한국어 안내 + 라이선스 |
-| **다운로드 확인하기** | `SHA256SUMS.txt` | EXE·ZIP의 SHA-256 해시 |
+| **GUI로 시작하기** | [SyrianSegoe-Korean.exe](https://github.com/kbm323/SyrianSegoe/releases/download/v0.5.0-ko.1/SyrianSegoe-Korean.exe) | 바로 실행하는 GUI |
+| **도구와 안내를 함께 보관하기** | [SyrianSegoe-Korean-Windows-x64.zip](https://github.com/kbm323/SyrianSegoe/releases/download/v0.5.0-ko.1/SyrianSegoe-Korean-Windows-x64.zip) | GUI + 빌드·설치 CLI + 한국어 안내 + 라이선스 |
+| **다운로드 확인하기** | [SHA256SUMS.txt](https://github.com/kbm323/SyrianSegoe/releases/download/v0.5.0-ko.1/SHA256SUMS.txt) | EXE·ZIP의 SHA-256 해시 |
 | **소스 수정하기** | GitHub의 Source code ZIP / TAR.GZ | 소스 코드. 실행 파일 묶음과 다릅니다 |
 
 Windows 11 **x64**용입니다. ARM64/x86은 미검증입니다.
