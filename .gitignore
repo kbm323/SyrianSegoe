@@ -2,3 +2,14 @@ __pycache__/
 *.pyc
 venv/
 Original_Segoe_Backups/
+*.ttf
+*.otf
+*.spec
+build/
+dist/
+korean-builds/
+.korean-build-*/
+
+.venv/
+
+release/

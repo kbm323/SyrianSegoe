@@ -1,0 +1,52 @@
+{
+  "entries": [
+    [
+      "segoeuil_system_mod.ttf",
+      "Segoe UI Light (TrueType)"
+    ],
+    [
+      "segoeuisl_system_mod.ttf",
+      "Segoe UI Semilight (TrueType)"
+    ],
+    [
+      "segoeui_system_mod.ttf",
+      "Segoe UI (TrueType)"
+    ],
+    [
+      "seguisb_system_mod.ttf",
+      "Segoe UI Semibold (TrueType)"
+    ],
+    [
+      "segoeuib_system_mod.ttf",
+      "Segoe UI Bold (TrueType)"
+    ],
+    [
+      "seguibl_system_mod.ttf",
+      "Segoe UI Black (TrueType)"
+    ],
+    [
+      "malgunsl_system_mod.ttf",
+      "Malgun Gothic Semilight (TrueType)"
+    ],
+    [
+      "malgun_system_mod.ttf",
+      "Malgun Gothic (TrueType)"
+    ],
+    [
+      "malgunbd_system_mod.ttf",
+      "Malgun Gothic Bold (TrueType)"
+    ],
+    [
+      "SegUIVar_system_mod.ttf",
+      "Segoe UI Variable (TrueType)"
+    ]
+  ],
+  "system_modified": false,
+  "reboot_required": true,
+  "excluded": [
+    "Segoe Fluent Icons",
+    "Segoe MDL2 Assets",
+    "Segoe UI Emoji",
+    "Segoe UI Symbol"
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "method": "Windows GDI FR_PRIVATE process-only; resources removed",
+  "global_registration_modified": false,
+  "fonts": [
+    {
+      "file": "malgun_system_mod.ttf",
+      "private_faces_loaded": 2,
+      "modern_hangul_gdi_mapped": 11172,
+      "replacement_identity_confirmed": true
+    },
+    {
+      "file": "malgunbd_system_mod.ttf",
+      "private_faces_loaded": 2,
+      "modern_hangul_gdi_mapped": 11172,
+      "replacement_identity_confirmed": true
+    },
+    {
+      "file": "malgunsl_system_mod.ttf",
+      "private_faces_loaded": 2,
+      "modern_hangul_gdi_mapped": 11172,
+      "replacement_identity_confirmed": true
+    },
+    {
+      "file": "segoeui_system_mod.ttf",
+      "private_faces_loaded": 2,
+      "modern_hangul_gdi_mapped": 11172,
+      "replacement_identity_confirmed": true
+    },
+    {
+      "file": "segoeuib_system_mod.ttf",
+      "private_faces_loaded": 2,
+      "modern_hangul_gdi_mapped": 11172,
+      "replacement_identity_confirmed": true
+    },
+    {
+      "file": "segoeuil_system_mod.ttf",
+      "private_faces_loaded": 2,
+      "modern_hangul_gdi_mapped": 11172,
+      "replacement_identity_confirmed": true
+    },
+    {
+      "file": "segoeuisl_system_mod.ttf",
+      "private_faces_loaded": 2,
+      "modern_hangul_gdi_mapped": 11172,
+      "replacement_identity_confirmed": true
+    },
+    {
+      "file": "seguibl_system_mod.ttf",
+      "private_faces_loaded": 2,
+      "modern_hangul_gdi_mapped": 11172,
+      "replacement_identity_confirmed": true
+    },
+    {
+      "file": "seguisb_system_mod.ttf",
+      "private_faces_loaded": 2,
+      "modern_hangul_gdi_mapped": 11172,
+      "replacement_identity_confirmed": true
+    },
+    {
+      "file": "SegUIVar_system_mod.ttf",
+      "private_faces_loaded": 30,
+      "modern_hangul_gdi_mapped": 11172,
+      "replacement_identity_confirmed": true
+    }
+  ],
+  "variable_alias_checks": [
+    {
+      "file": "SegUIVar_system_mod.ttf",
+      "private_faces_loaded": 30,
+      "modern_hangul_gdi_mapped": 11172,
+      "replacement_identity_confirmed": true,
+      "selected_family": "Segoe UI Variable Small"
+    },
+    {
+      "file": "SegUIVar_system_mod.ttf",
+      "private_faces_loaded": 30,
+      "modern_hangul_gdi_mapped": 11172,
+      "replacement_identity_confirmed": true,
+      "selected_family": "Segoe UI Variable Display"
+    }
+  ],
+  "variable_text_alias_checked": true
+}

@@ -10,7 +10,7 @@ try:
 except Exception:
     pass
 
-print("\n[Engine] Starting Stabilized Grid-Sync Builder...")
+print("\n[Italic Grid-Sync Engine] Starting Stabilized Italic Grid-Sync Builder...")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -454,16 +454,16 @@ def process_weight(latin_path, arabic_path, weight_type, segoe_filename):
 # Execution matched pairs
 # Mapping the 12 input arguments from app.py to the 6 System Font Weights
 weights_map = [
-    ("Light", sys.argv[1], sys.argv[7], "segoeuil.ttf"),
-    ("Semilight", sys.argv[2], sys.argv[8], "segoeuisl.ttf"),
-    ("Regular", sys.argv[3], sys.argv[9], "segoeui.ttf"),
-    ("Semibold", sys.argv[4], sys.argv[10], "seguisb.ttf"),
-    ("Bold", sys.argv[5], sys.argv[11], "segoeuib.ttf"),
-    ("Black", sys.argv[6], sys.argv[12], "seguibl.ttf")
+    ("Light Italic", sys.argv[1], sys.argv[7], "seguili.ttf"),
+    ("Semilight Italic", sys.argv[2], sys.argv[8], "seguisli.ttf"),
+    ("Italic", sys.argv[3], sys.argv[9], "segoeuii.ttf"),
+    ("Semibold Italic", sys.argv[4], sys.argv[10], "seguisbi.ttf"),
+    ("Bold Italic", sys.argv[5], sys.argv[11], "segoeuiz.ttf"),
+    ("Black Italic", sys.argv[6], sys.argv[12], "seguibli.ttf")
 ]
 
 for weight_name, lat_path, ara_path, sys_filename in weights_map:
     if not process_weight(lat_path, ara_path, weight_name, sys_filename):
         raise SystemExit(1)
 
-print("\n[Engine] All system replacement fonts built successfully!")
+print("\n[Italic Grid-Sync Engine] All italic replacement fonts built successfully!")

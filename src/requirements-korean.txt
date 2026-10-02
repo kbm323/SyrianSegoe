@@ -1,0 +1,2 @@
+# Tested with Python 3.12. Only this dependency is needed for build-only use.
+fonttools==4.66.1

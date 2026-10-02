@@ -2,6 +2,7 @@ import fontforge
 import sys
 import os
 import gc
+from glyph_policy import KOREAN_TEXT_CODEPOINTS, protected_korean_glyph, has_hangul
 
 try:
     sys.stdout.reconfigure(line_buffering=True)
@@ -75,6 +76,8 @@ ESSENTIAL_GLYPHS = {
     *range(0x4E00, 0x4FFF),
 }
 
+ESSENTIAL_GLYPHS.update(KOREAN_TEXT_CODEPOINTS)
+
 def get_segoe_metrics(segoe_path):
     """Opens Segoe UI just to get its EM grid."""
     f = fontforge.open(segoe_path)
@@ -111,6 +114,7 @@ def get_segoe_metrics(segoe_path):
 
 def cleanup_unused_glyphs(font, preserve_arabic_joining=False, remove_kern_lookups=True):
     """Remove unused combining marks and problematic glyphs that cause errors."""
+    preserve_arabic_joining = preserve_arabic_joining or has_hangul(font)
     try:
         # First: Optionally remove kern lookups only.
         # Preserve Arabic GPOS entirely when requested.
@@ -161,14 +165,14 @@ def cleanup_unused_glyphs(font, preserve_arabic_joining=False, remove_kern_looku
         
         glyphs_to_remove = []
         
-        # Use numeric loop instead of direct iteration to avoid hash issues
-        glyph_count = len(font.glyphs())
-        for i in range(glyph_count):
+        # Snapshot the FontForge iterator before removing glyphs
+        for glyph in list(font.glyphs()):
             try:
-                glyph = font.glyphs()[i]
-                glyph_name = glyph.name
+                glyph_name = glyph.glyphname
                 
                 # Check if it's in problematic list
+                if protected_korean_glyph(glyph):
+                    continue
                 if glyph_name in problematic_glyphs:
                     glyphs_to_remove.append(glyph_name)
                 # Check if it's a high Unicode codepoint that's not essential
@@ -197,7 +201,7 @@ def cleanup_unused_glyphs(font, preserve_arabic_joining=False, remove_kern_looku
 def cleanup_lookup_tables(font, remove_kern_lookups=True):
     """Remove any remaining kern tables without deleting Arabic positioning lookups."""
     try:
-        if not remove_kern_lookups:
+        if not remove_kern_lookups or has_hangul(font):
             print(f"     -> Skipped lookup cleanup for Arabic-preserved font")
             return
         removed_count = 0
@@ -310,7 +314,7 @@ def prepare_font(path, target_metrics, suffix, wipe_latin=False, strip_ligatures
         # 3. Strip ALL GSUB/GPOS Lookups aggressively (but preserve Arabic features when requested)
         if strip_ligatures:
             try:
-                if preserve_arabic_joining:
+                if preserve_arabic_joining or has_hangul(font):
                     print(f"     -> Preserving Arabic GSUB/GPOS lookups from {os.path.basename(path)}...")
                 else:
                     print(f"     -> Stripping ALL lookup tables (GSUB/GPOS) from {os.path.basename(path)}...")
@@ -331,12 +335,7 @@ def prepare_font(path, target_metrics, suffix, wipe_latin=False, strip_ligatures
             font.generate(temp_path)
         except Exception as e:
             print(f"     -> Warning during font generation: {e}")
-            # Try to save anyway
-            try:
-                font.save(temp_path)
-            except Exception as e2:
-                print(f"     -> Error saving font: {e2}")
-                return None
+            return None
                 
     except Exception as e:
         print(f"     -> Critical error processing {os.path.basename(path)}: {e}")
@@ -352,7 +351,7 @@ def prepare_font(path, target_metrics, suffix, wipe_latin=False, strip_ligatures
     return temp_path
 
 def process_weight(latin_path, arabic_path, weight_type, segoe_filename):
-    if latin_path == "NONE": return
+    if latin_path == "NONE": return True
 
     print(f"\n[Engine] Processing {weight_type} weight...")
     segoe_path = os.path.join(os.environ.get('WINDIR', 'C:\\Windows'), 'Fonts', segoe_filename)
@@ -429,10 +428,7 @@ def process_weight(latin_path, arabic_path, weight_type, segoe_filename):
                 sf.generate(s_temp)
             except Exception as e:
                 print(f"  -> Warning generating Segoe symbols: {e}")
-                try:
-                    sf.save(s_temp)
-                except Exception as e2:
-                    print(f"  -> Error saving Segoe symbols: {e2}")
+                return
                     
         except Exception as e:
             print(f"  -> Error processing Segoe symbols: {e}")
@@ -501,13 +497,10 @@ def process_weight(latin_path, arabic_path, weight_type, segoe_filename):
             final_font.generate(output_name)
         except Exception as e:
             print(f"  -> Error generating final font: {e}")
-            try:
-                final_font.save(output_name)
-            except Exception as e2:
-                print(f"  -> Failed to save final font: {e2}")
-                return
+            return
                 
         print(f"  -> Success! Saved as: {os.path.basename(output_name)}")
+        return True
         
     except Exception as e:
         print(f"  -> Unexpected error processing {weight_type}: {e}")
@@ -543,6 +536,7 @@ weights_map = [
 ]
 
 for weight_name, lat_path, ara_path, sys_filename in weights_map:
-    process_weight(lat_path, ara_path, weight_name, sys_filename)
+    if not process_weight(lat_path, ara_path, weight_name, sys_filename):
+        raise SystemExit(1)
 
 print("\n[Engine] All system replacement fonts built successfully!")
