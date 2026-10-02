@@ -1,13 +1,15 @@
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
-import os, shutil, subprocess, ctypes, sys, threading, json, tempfile, re, winreg
+import os, shutil, subprocess, ctypes, sys, threading, json, tempfile, re, winreg, uuid
+from pathlib import Path
 from PIL import Image 
 import translations 
 import segoe_cloner
 import variable_slicer
 import font_resizer
 from font_backup import backup_originals, persistent_state_dir
-from font_transaction import install_font_set, restore_font_set, WindowsRegistry, ALLOWED, JOURNAL
+from font_transaction import install_font_set, restore_font_set, WindowsRegistry, ALLOWED, JOURNAL, plan_install, apply_build
+from korean_builder import build_all, check_source
 from glyph_policy import is_hangul
 from fontTools.ttLib import TTFont
 
@@ -99,6 +101,9 @@ class SyrianSegoeApp(ctk.CTk):
         self.latin_light = None; self.latin_semilight = None; self.latin_reg = None
         self.latin_semibold = None; self.latin_bold = None; self.latin_black = None
         self.latin_is_var = False
+        self.korean_source = None
+        self.korean_build_dir = None
+        self.build_busy = False
 
         self.arabic_light = None; self.arabic_semilight = None; self.arabic_reg = None
         self.arabic_semibold = None; self.arabic_bold = None; self.arabic_black = None
@@ -190,6 +195,25 @@ class SyrianSegoeApp(ctk.CTk):
 
         self.scroll_frame = ctk.CTkScrollableFrame(self.home_frame, fg_color="transparent")
         self.scroll_frame.pack(fill="both", expand=True, padx=10, pady=5)
+
+        korean_panel = ctk.CTkFrame(self.scroll_frame)
+        korean_panel.pack(fill="x", padx=10, pady=10)
+        ctk.CTkLabel(korean_panel, text="한국어 Windows 11 · Pretendard", font=self.font_bold).pack(pady=(10, 0))
+        ctk.CTkLabel(korean_panel, text="Segoe UI + 맑은 고딕 · 아이콘/이모지 유지\n빌드 후 별도로 적용합니다. 아래 일반 합성 설정은 사용하지 않습니다.",
+                     font=self.font_small).pack(pady=5)
+        self.korean_select_btn = ctk.CTkButton(korean_panel, text="1. Pretendard Variable 선택",
+                                               command=self.select_korean_source, font=self.font_base)
+        self.korean_select_btn.pack(pady=5)
+        self.korean_source_lbl = ctk.CTkLabel(korean_panel, text="PretendardVariable.ttf를 선택하세요.", font=self.font_small)
+        self.korean_source_lbl.pack()
+        self.korean_build_btn = ctk.CTkButton(korean_panel, text="2. 빌드·검증 (시스템 변경 없음)",
+                                              command=self.build_korean_package, state="disabled", font=self.font_base)
+        self.korean_build_btn.pack(pady=5)
+        self.korean_package_lbl = ctk.CTkLabel(korean_panel, text="아직 생성된 패키지가 없습니다.", wraplength=470, font=self.font_small)
+        self.korean_package_lbl.pack(padx=10, pady=5)
+        self.korean_apply_btn = ctk.CTkButton(korean_panel, text="3. 검증된 글꼴 적용", fg_color="green",
+                                              command=self.apply_korean_build, state="disabled", font=self.font_bold)
+        self.korean_apply_btn.pack(pady=(5, 15))
 
         self.selection_container = ctk.CTkFrame(self.scroll_frame, fg_color="transparent")
         self.selection_container.pack(fill="both", expand=True)
@@ -347,6 +371,7 @@ class SyrianSegoeApp(ctk.CTk):
         self.select_frame("home")
         self.toggle_italic_sections()
         self.refresh_ui_text()
+        self.protocol('WM_DELETE_WINDOW', self.close_app)
 
     def update_font_size_ui(self):
         """Fetches current system metrics and updates the UI menus."""
@@ -378,6 +403,8 @@ class SyrianSegoeApp(ctk.CTk):
         return {
             "lang": self.current_lang,
             "theme": self.current_appearance_mode,
+            "korean_source": self.korean_source,
+            "korean_build_dir": self.korean_build_dir,
             "vars": {
                 "show_log": self.show_log_var.get(),
                 "save_log": self.save_log_var.get(),
@@ -433,6 +460,8 @@ class SyrianSegoeApp(ctk.CTk):
                 state = json.load(f)
             self.current_lang = state["lang"]
             self.current_appearance_mode = state["theme"]
+            self.korean_source = state.get('korean_source')
+            self.korean_build_dir = state.get('korean_build_dir')
             ctk.set_appearance_mode(self.current_appearance_mode)
             for key, val in state["vars"].items(): getattr(self, f"{key}_var").set(val)
             for lang in ["latin", "arabic", "latin_italic", "arabic_italic"]:
@@ -603,7 +632,8 @@ class SyrianSegoeApp(ctk.CTk):
 
         self.sub_label.configure(text=self.t("sub_text"), text_color=theme_text)
         self.apply_btn.configure(text=self.t("build"))
-        self.revert_btn.configure(text=self.t("restore"))
+        self.revert_btn.configure(text="원본 복원 / Restore")
+        self.refresh_korean_controls()
         self.status_lbl.configure(text=self.t("status_ready"), text_color=theme_text)
 
         # Sidebar & Settings
@@ -930,10 +960,11 @@ class SyrianSegoeApp(ctk.CTk):
         return False
 
     def restore_system(self):
+        if self.build_busy: return
         if not is_admin():
             if messagebox.askyesno("Admin", self.t("admin_confirm", is_popup=True)):
                 state_f = self.save_state()
-                params = f'"{sys.argv[0]}" --state "{state_f}"' if not getattr(sys, 'frozen', False) else f'--state "{state_f}"'
+                params = f'"{os.path.abspath(sys.argv[0])}" --state "{state_f}"' if not getattr(sys, 'frozen', False) else f'--state "{state_f}"'
                 ret = ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, params, None, 1)
                 if int(ret) > 32: # تم قبول طلب الصلاحيات بنجاح
                     self.destroy()
@@ -1047,6 +1078,7 @@ class SyrianSegoeApp(ctk.CTk):
         except: return True
 
     def build_and_apply(self):
+        if self.build_busy: return
         if not self.latin_reg: 
             messagebox.showerror("Error", self.t("sel_err", is_popup=True))
             return
@@ -1059,10 +1091,10 @@ class SyrianSegoeApp(ctk.CTk):
                 with TTFont(path) as selected_font:
                     korean_input = korean_input or any(is_hangul(cp) for cp in (selected_font.getBestCmap() or {}))
             if korean_input:
-                messagebox.showinfo('Korean Pretendard installation',
-                    '한국어 Pretendard는 검증된 10종 패키지 설치 경로를 사용하세요.\n'
-                    'README.ko.md의 --installable 빌드 및 font_transaction.py apply 명령을 사용하세요.\n'
-                    '이 창에서는 적용하지 않습니다. 별도 설치 명령이 백업 후 적용합니다.')
+                messagebox.showinfo('한국어 Pretendard',
+                    '홈 화면 위쪽의 한국어 Windows 11 · Pretendard 영역에서\n'
+                    'PretendardVariable.ttf 선택 → 빌드·검증 → 적용을 사용하세요.\n'
+                    '일반 합성 경로로는 한국어 글꼴을 적용하지 않습니다.', parent=self)
                 return
         except Exception as exc:
             messagebox.showerror('Invalid font', str(exc))
@@ -1070,7 +1102,7 @@ class SyrianSegoeApp(ctk.CTk):
         if not is_admin():
             if messagebox.askyesno("Admin", self.t("admin_confirm", is_popup=True)):
                 state_f = self.save_state()
-                params = f'"{sys.argv[0]}" --state "{state_f}"' if not getattr(sys, 'frozen', False) else f'--state "{state_f}"'
+                params = f'"{os.path.abspath(sys.argv[0])}" --state "{state_f}"' if not getattr(sys, 'frozen', False) else f'--state "{state_f}"'
                 ret = ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, params, None, 1)
                 if int(ret) > 32: # تم قبول طلب الصلاحيات بنجاح
                     self.destroy()
@@ -1085,8 +1117,7 @@ class SyrianSegoeApp(ctk.CTk):
 
         if not self.check_system_state(): return
 
-        self.apply_btn.configure(state="disabled")
-        self.revert_btn.configure(state="disabled")
+        self.set_build_busy(True)
         threading.Thread(target=self._threaded_build, args=(ff_exe,), daemon=True).start()
 
     def _threaded_build(self, ff_exe):
@@ -1253,11 +1284,115 @@ class SyrianSegoeApp(ctk.CTk):
             
         except Exception as e: messagebox.showerror("Error", str(e))
         finally: 
-            self.after(0, lambda: self.apply_btn.configure(state="normal"))
-            self.after(0, lambda: self.revert_btn.configure(state="normal"))
+            self.after(0, lambda: self.set_build_busy(False))
             self.after(0, lambda: self.status_lbl.configure(text=self.t("status_ready")))
             for f in temp_files_to_clean:
                 if os.path.exists(f): os.remove(f)
+
+    def refresh_korean_controls(self):
+        self.korean_source_lbl.configure(text=os.path.basename(self.korean_source) if self.korean_source else 'PretendardVariable.ttf를 선택하세요.')
+        self.korean_package_lbl.configure(text=('패키지: ' + self.korean_build_dir) if self.korean_build_dir else '아직 생성된 패키지가 없습니다.')
+        self.korean_select_btn.configure(state='disabled' if self.build_busy else 'normal')
+        self.korean_build_btn.configure(state='normal' if self.korean_source and not self.build_busy else 'disabled')
+        self.korean_apply_btn.configure(state='normal' if self.korean_build_dir and not self.build_busy else 'disabled')
+
+    def set_build_busy(self, busy):
+        self.build_busy = busy
+        for button in (self.apply_btn, self.revert_btn, self.entire_apply_btn, self.indiv_apply_btn):
+            button.configure(state='disabled' if busy else 'normal')
+        self.refresh_korean_controls()
+
+    def close_app(self):
+        if self.build_busy:
+            messagebox.showinfo('처리 중', '빌드 또는 적용이 끝난 뒤 창을 닫아 주세요.', parent=self)
+            return
+        self.save_config()
+        self.destroy()
+
+    def select_korean_source(self):
+        if self.build_busy: return
+        path = filedialog.askopenfilename(parent=self, title='일반판 Pretendard Variable TTF 선택', filetypes=[('Variable TTF', '*.ttf')])
+        if not path: return
+        try:
+            with TTFont(path) as font:
+                check_source(font)
+                if 'fvar' not in font or not any(a.axisTag == 'wght' for a in font['fvar'].axes):
+                    raise ValueError('일반판 PretendardVariable.ttf를 선택하세요. Static/JP는 설치용 GUI에서 지원하지 않습니다.')
+            self.korean_source = path
+            self.korean_build_dir = None
+            self.refresh_korean_controls()
+            self.save_config()
+        except Exception as exc:
+            messagebox.showerror('글꼴 선택 오류', str(exc), parent=self)
+
+    def build_korean_package(self):
+        if self.build_busy or not self.korean_source: return
+        parent = filedialog.askdirectory(parent=self, title='패키지를 보관할 폴더 선택 (새 하위 폴더 생성)')
+        if not parent: return
+        output = str(Path(parent) / ('Pretendard-' + uuid.uuid4().hex[:12]))
+        fonts = str(Path(os.environ['WINDIR']) / 'Fonts')
+        self.korean_build_dir = None
+        self.save_config()
+        self.set_build_busy(True)
+        self.progress_bar.set(0.1)
+        self.status_lbl.configure(text='한국어 10종 빌드·검증 중… 수 분 걸릴 수 있습니다.')
+        threading.Thread(target=self._threaded_korean_build, args=(self.korean_source, fonts, output), daemon=True).start()
+
+    def _threaded_korean_build(self, source, fonts, output):
+        try:
+            build_all(source, fonts, output, installable=True)
+            plan_install(output, fonts)
+        except Exception as exc:
+            self.after(0, lambda error=str(exc): self.finish_korean_operation('build', None, error))
+        else:
+            self.after(0, lambda: self.finish_korean_operation('build', output, None))
+
+    def apply_korean_build(self):
+        if self.build_busy or not self.korean_build_dir: return
+        if not messagebox.askyesno('Pretendard 적용',
+            'Segoe UI와 맑은 고딕 10종의 등록을 변경합니다. 원본은 백업하며 아이콘/이모지는 유지합니다.\n'
+            '실제 Windows 화면과 재부팅 후 복원은 아직 검증하지 않았습니다. 적용 후 직접 재부팅하세요.\n\n'
+            '관리자 권한으로 다시 열린 경우 적용 버튼을 다시 누르세요.\n적용하시겠습니까?', parent=self): return
+        if not is_admin():
+            state = self.save_state()
+            args = ['--state', state]
+            if not getattr(sys, 'frozen', False): args.insert(0, os.path.abspath(sys.argv[0]))
+            try:
+                result = ctypes.windll.shell32.ShellExecuteW(None, 'runas', sys.executable,
+                    subprocess.list2cmdline(args), None, 1)
+                if int(result) <= 32: raise PermissionError('관리자 권한 요청이 취소되었거나 실패했습니다.')
+            except Exception as exc:
+                os.remove(state)
+                messagebox.showerror('관리자 권한', str(exc), parent=self)
+            else:
+                self.destroy()
+            return
+        self.set_build_busy(True)
+        self.status_lbl.configure(text='패키지 재검증·백업·적용 중…')
+        fonts = str(Path(os.environ['WINDIR']) / 'Fonts')
+        threading.Thread(target=self._threaded_korean_apply, args=(self.korean_build_dir, fonts), daemon=True).start()
+
+    def _threaded_korean_apply(self, output, fonts):
+        try:
+            apply_build(output, fonts, persistent_state_dir(), WindowsRegistry())
+        except Exception as exc:
+            self.after(0, lambda error=str(exc): self.finish_korean_operation('apply', None, error))
+        else:
+            self.after(0, lambda: self.finish_korean_operation('apply', output, None))
+
+    def finish_korean_operation(self, action, output, error):
+        if action == 'build': self.korean_build_dir = output
+        self.set_build_busy(False)
+        self.save_config()
+        self.progress_bar.set(0 if error else 1)
+        self.status_lbl.configure(text='처리 실패' if error else '검증 완료 · 별도로 적용하세요.' if action == 'build' else '적용 완료 · 재부팅 필요')
+        if error:
+            messagebox.showerror('빌드·검증 오류' if action == 'build' else '적용 오류',
+                error + ('\n실패한 설치의 복원이 필요한 경우 원본 복원 버튼을 사용하세요.' if action == 'apply' else '\n시스템 글꼴은 변경하지 않았습니다.'), parent=self)
+        else:
+            messagebox.showinfo('빌드·검증 완료' if action == 'build' else '적용 완료',
+                '10종 패키지 검증을 통과했습니다. 아직 시스템에 적용하지 않았습니다.\n' + output if action == 'build'
+                else '작업을 저장하고 직접 재부팅하세요. 문제가 있으면 원본 복원 / Restore 후 다시 재부팅하세요.', parent=self)
 
 
 if __name__ == "__main__":

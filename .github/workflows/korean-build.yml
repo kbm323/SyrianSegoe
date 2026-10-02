@@ -17,8 +17,22 @@ jobs:
       - run: python -m pip install -r src/requirements-build.txt
       - run: python -m unittest discover -s tests -v
       - run: python -m compileall -q src tests
+      - name: Package GUI without installing fonts
+        run: >-
+          python -m PyInstaller --noconfirm --onefile --windowed --name SyrianSegoe
+          --icon src/logo.ico --paths src --collect-all customtkinter
+          --add-data "src/engine.py;." --add-data "src/grid_sync_engine.py;."
+          --add-data "src/engine_italic.py;." --add-data "src/grid_sync_engine_italic.py;."
+          --add-data "src/glyph_policy.py;." --add-data "src/SyrianSegoe_Banner.png;."
+          --add-data "src/SyrianSegoe_Banner_Light.png;." --add-data "src/logo.ico;." src/app.py
       - name: Package build-only CLI
         run: python -m PyInstaller --noconfirm --onefile --name SyrianSegoe-Korean-Build --paths src src/korean_builder.py
       - name: Package Korean installer without executing it
         run: python -m PyInstaller --noconfirm --onefile --name SyrianSegoe-Korean-Install --paths src src/font_transaction.py
+      - name: Upload GUI executable (no generated fonts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: SyrianSegoe-Korean-GUI
+          path: dist/SyrianSegoe.exe
+          retention-days: 14
       # No generated Windows/Pretendard fonts are published, and no install runs.

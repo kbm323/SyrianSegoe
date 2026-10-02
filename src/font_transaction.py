@@ -23,6 +23,17 @@ JOURNAL = 'font_transaction.json'
 
 
 class WindowsRegistry:
+    def check_substitutes(self):
+        import winreg
+        try:
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, REGISTRY_PATH.replace('Fonts', 'FontSubstitutes')) as key:
+                for family in ('Segoe UI', 'Segoe UI Variable', 'Malgun Gothic'):
+                    try: winreg.QueryValueEx(key, family)
+                    except FileNotFoundError: continue
+                    raise ValueError('Existing FontSubstitutes override; restore it first: ' + family)
+        except FileNotFoundError:
+            pass
+
     def get(self, name):
         import winreg
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, REGISTRY_PATH) as key:
@@ -238,6 +249,7 @@ def plan_install(build_dir, fonts_dir):
 
 def apply_build(build_dir, fonts_dir, state_dir, registry):
     from font_backup import backup_originals
+    if isinstance(registry, WindowsRegistry): registry.check_substitutes()
     plan=plan_install(build_dir,fonts_dir)
     if (Path(state_dir)/JOURNAL).exists():raise ValueError('Restore the previous transaction first')
     backup_originals(fonts_dir,state_dir)
@@ -264,14 +276,6 @@ def main():
             raise PermissionError('Run this command in an Administrator PowerShell')
         if args.action=='plan':result=plan_install(args.build,fonts)
         elif args.action=='apply':
-            import winreg
-            try:
-                with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,REGISTRY_PATH.replace('Fonts','FontSubstitutes')) as key:
-                    for family in ('Segoe UI','Segoe UI Variable','Malgun Gothic'):
-                        try: winreg.QueryValueEx(key,family)
-                        except FileNotFoundError:continue
-                        raise ValueError('Existing FontSubstitutes override; restore it first: '+family)
-            except FileNotFoundError:pass
             result=apply_build(args.build,fonts,state,WindowsRegistry())
         else:result={'restored':restore_font_set(state,WindowsRegistry(),fonts),'reboot_required':True}
     except Exception as exc:parser.exit(1,str(exc)+'\n')

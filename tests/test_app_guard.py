@@ -29,6 +29,6 @@ class AppGuardTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'Pretendard-Regular.ttf'
             make_font(path)
-            app = types.SimpleNamespace(latin_reg=str(path))
+            app = types.SimpleNamespace(latin_reg=str(path), build_busy=False)
             namespace['build_and_apply'](app)
         self.assertEqual(len(messages), 1)

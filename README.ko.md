@@ -2,7 +2,27 @@
 
 이 브랜치는 SyrianTurk/SyrianSegoe의 한글 삭제 경로를 수정하고, **기존 설치·복원을 재사용하는 한국어 경로**를 추가한다. 기준 저장소는 GitHub의 `kbm323/SyrianSegoe`, 브랜치는 `pretendard-korean-support`다. 로컬 체크아웃·생성 글꼴은 임시 검증 자료다.
 
-**설치 가능한 패키지 생성과 apply/restore 명령을 제공합니다.** 이 작업에서는 실제 PC에 적용하지 않았으므로 시작 메뉴·설정·로그인 화면·DPI별 렌더링·재부팅 후 Restore는 아직 검증하지 않았습니다. 기존 GUI의 일반 합성 경로로 한국어를 보내지 않고 아래 한국어 설치 명령을 사용합니다. 기존의 기본 빌드 전용 모드도 유지합니다.
+**기존 GUI에서 Pretendard Variable 선택 → 빌드·검증 → 적용 → 원본 복원을 사용할 수 있습니다.** 이 작업에서는 실제 PC에 적용하지 않았으므로 시작 메뉴·설정·로그인 화면·DPI별 렌더링·재부팅 후 Restore는 아직 검증하지 않았습니다. GUI 홈 화면의 한국어 전용 영역을 사용하며 기존 일반 합성 경로로 한국어를 보내지 않습니다. CLI와 기본 빌드 전용 모드도 유지합니다.
+
+## GUI로 사용하기
+
+1. [GitHub Actions](https://github.com/kbm323/SyrianSegoe/actions/workflows/korean-build.yml)에서 `pretendard-korean-support` 브랜치의 성공한 실행을 열고 **Artifacts → SyrianSegoe-Korean-GUI**를 다운로드합니다. GitHub 로그인이 필요하며 아티팩트는 14일간 보관합니다. ZIP을 풀고 `SyrianSegoe.exe`를 실행합니다. upstream Releases의 기존 EXE에는 한국어 기능이 없습니다.
+2. [공식 Pretendard 1.3.9 ZIP](https://github.com/orioncactus/pretendard/releases/tag/v1.3.9)을 풀고 홈 화면 위쪽 **한국어 Windows 11 · Pretendard → 1. Pretendard Variable 선택**에서 `public/variable/PretendardVariable.ttf`를 선택합니다. JP, Static, OTF는 설치용 GUI 입력으로 지원하지 않습니다.
+3. **2. 빌드·검증 (시스템 변경 없음)**을 누르고 패키지를 보관할 폴더를 고릅니다. 해당 폴더에 새 `Pretendard-…` 하위 폴더를 만듭니다. 기존 파일을 덮어쓰지 않으며 수 분 걸릴 수 있습니다. FontForge와 관리자 권한은 필요하지 않습니다.
+4. 완료 안내와 패키지 경로를 확인한 뒤 **3. 검증된 글꼴 적용**을 누릅니다. 이 버튼부터 시스템 변경을 수행합니다. 확인 창과 Windows 관리자 권한 요청을 승인하면 창이 다시 열립니다. 같은 Windows 사용자 계정을 사용하고 **적용 버튼을 다시 누릅니다.** 권한 상승 직후 자동 설치하지 않습니다. 패키지와 현재 Windows 원본은 적용 전에 다시 검증합니다.
+5. 적용 완료 후 작업을 저장하고 **직접 재부팅**합니다. 문제 발생 시 홈 화면 아래 **원본 복원 / Restore**를 누르고 관리자 권한으로 다시 열리면 복원 버튼을 다시 누릅니다. 복원 완료 후 다시 재부팅합니다. 잠긴 생성 파일 때문에 복원 오류가 나면 변경 기록을 유지하며 재부팅 후 복원을 다시 실행합니다.
+
+한국어 경로는 아래 Latin/Arabic/Italic 및 Visual/Grid 합성 설정, Clone, 로그/폰트 저장 옵션을 사용하지 않습니다. 패키지는 선택한 폴더에 항상 남고 원본 백업·복원 기록은 Documents에 남습니다. 빌드 또는 적용 중에는 다른 적용·복원과 창 닫기를 막습니다. 앱 제어 정책이 EXE를 차단하면 정책을 해제하지 말고 아래 Python 소스 실행 방법을 사용합니다.
+
+소스로 GUI 실행하기(Python 3.12, 저장소 루트에서):
+
+```powershell
+python -m venv .venv
+.venv\Scripts\python.exe -m pip install -r src/requirements-build.txt
+.venv\Scripts\python.exe src/app.py
+```
+
+빌드 결과는 현재 Windows 원본에 맞춰 생성합니다. 다른 PC로 생성 TTF를 복사해 적용하지 않습니다. 실제 Windows UI 전체와 재부팅 후 복원은 미검증이므로 복구 가능한 환경에서 먼저 확인하세요.
 
 ## 원본 분석과 변경점
 
@@ -12,7 +32,7 @@
 | `variable_slicer.py` | Segoe UI cmap만 기준으로 subset하면서 한글을 삭제하던 경로 수정. 한글·한국어 문자 범위 추가. 기존 Variable placeholder에 시스템 이름 적용. 이 placeholder가 실제 Segoe UI Variable 축/동작을 재현한다고 보장하지 않음 |
 | `glyph_policy.py` | 네 엔진과 slicer가 공유하는 한국어 문자 보존 정책 |
 | `font_targets.py`, `korean_builder.py` | 기본 빌드 9종 및 설치용 10종(Variable 포함)을 FontTools로 생성·검사. Static 및 Variable 입력 지원, Malgun Gothic 지원, 시스템 원본은 읽기 전용 |
-| `app.py`, `font_backup.py` | 한글 입력의 기존 적용 차단. Segoe/Malgun 원본 백업 추가 및 재실행 시 덮어쓰기 방지. 해시 검증 |
+| `app.py`, `font_backup.py` | 기존 GUI에 한국어 Variable 선택·빌드/검증·별도 적용 연결, 기존 Restore 재사용. 한글 입력은 일반 합성 경로에서 차단. Segoe/Malgun 원본 백업 및 재실행 시 덮어쓰기 방지. 해시 검증 |
 | `font_transaction.py` | 기존 GUI 적용 경로를 journal 방식으로 보강. 전체 생성물 사전검사, 원래 레지스트리 값 기록, 중간 실패 보상 복구, 영구 journal 기반 Restore. 이번 작업에서는 실제 설치 호출을 실행하지 않음 |
 | `segoe_cloner.py` | Segoe UI Clone 별도 설치 기능임을 확인. 한국어 builder가 호출하지 않으며 Malgun/아이콘 복제 기능을 추가하지 않음 |
 | `font_resizer.py` | NONCLIENTMETRICS와 아이콘 제목 텍스트 크기를 바꾸는 별도 기능임을 확인. 한국어 builder가 호출하지 않음 |
@@ -36,7 +56,7 @@ Pretendard 일반판에는 `漢字`가 없었다. Segoe UI 역시 한자 공급�
 
 ## 글꼴과 굵기 매핑
 
-일반 `Pretendard` 1.3.9를 검증에 사용했다. Pretendard JP, Apple SF Pro, Apple SD Gothic Neo는 사용하거나 배포하지 않는다. Static을 우선 선택한다.
+일반 `Pretendard` 1.3.9를 검증에 사용했다. Pretendard JP, Apple SF Pro, Apple SD Gothic Neo는 사용하거나 배포하지 않는다. GUI 설치에는 Variable을 사용하며 Static은 CLI 빌드 전용에서 지원한다.
 
 | Windows 대상 | 원본 파일 | Static 입력 | Variable wght |
 | --- | --- | --- | --- |
@@ -90,7 +110,7 @@ Variable 입력:
 
 출력 디렉터리는 **새 경로**여야 한다. 기존 출력·원본 파일은 덮어쓰지 않는다. 시스템 Fonts 폴더나 원본 참조 디렉터리 내부로 출력할 수 없다. 모든 결과가 검사에 통과해야 최종 출력 폴더를 만든다. 실패하면 임시 staging만 정리하며 설치하지 않는다. `--segoe-only`는 Malgun 대상 파일 생성을 생략한다. 한자 보완을 위해 원본 Malgun Regular/Bold가 여전히 필요할 수 있다.
 
-출력에는 9개의 `*_system_mod.ttf`와 `validation.json`이 생긴다. **TTF를 더블클릭하여 설치하거나 Windows Fonts로 복사하지 않는다. 기존 GUI의 Build & Apply도 이번 한국어 작업의 사용 방법이 아니다.** 향후 적용 기능과 UI 검증은 별도 작업이다.
+출력에는 9개의 `*_system_mod.ttf`와 `validation.json`이 생긴다. **기본 빌드 전용 9종은 설치하지 않는다. TTF를 더블클릭하거나 Windows Fonts로 복사하지 않는다.** 설치에는 위 GUI의 한국어 영역 또는 아래 `--installable` 10종 패키지를 사용한다. 기존 일반 합성의 Build & Apply 버튼은 한국어 경로가 아니다.
 
 ## 검증과 metrics
 
@@ -123,12 +143,10 @@ Windows 실행 파일 패키징:
 
 ```powershell
 .venv\Scripts\python -m pip install -r src/requirements-build.txt
-# 활성화된 가상 환경의 python을 사용
-.venv\Scripts\Activate.ps1
 .\build.ps1
 ```
 
-GUI와 빌드 전용 CLI를 각각 패키징한다. GUI를 실행하거나 적용·크기 변경·원본 Clone 설치를 검증용으로 호출하지 않는다. CI도 synthetic 글꼴 테스트와 패키징만 실행하며 글꼴을 설치하지 않는다. FontForge 원본 엔진은 코드·회귀 테스트를 검증했지만 실제 FontForge 런타임 생성은 이번 환경에 FontForge가 없어 검증하지 않았다.
+GUI와 두 CLI를 각각 패키징한다. GUI 테스트는 실제 창과 이벤트 루프를 사용하고 설치·복원은 임시 Fonts 폴더와 가상 레지스트리에서만 실행한다. CI도 같은 테스트와 패키징을 수행하며 시스템 글꼴을 설치하지 않는다. GUI EXE만 아티팩트로 제공하며 원본·생성 글꼴은 업로드하지 않는다. FontForge 원본 엔진은 코드·회귀 테스트를 검증했지만 실제 FontForge 런타임 생성은 이번 환경에 FontForge가 없어 검증하지 않았다.
 
 ## 아이콘·이모지 보호
 

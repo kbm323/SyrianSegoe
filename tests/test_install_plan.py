@@ -11,6 +11,19 @@ from korean_builder import MODERN_HANGUL, TEST_TEXT, sha256
 from test_rollback import Registry
 
 class InstallPlanTests(unittest.TestCase):
+    @unittest.skipUnless(sys.platform == 'win32', 'Windows registry preflight')
+    def test_substitution_override_blocks_shared_apply_before_any_write(self):
+        self.assertTrue(hasattr(transaction.WindowsRegistry, 'check_substitutes'), 'Shared registry override check missing')
+        from unittest.mock import patch, MagicMock
+        import winreg
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with patch.object(winreg, 'OpenKey', return_value=MagicMock()), \
+                    patch.object(winreg, 'QueryValueEx', return_value=('Other Font', 1)):
+                with self.assertRaisesRegex(ValueError, 'FontSubstitutes'):
+                    transaction.apply_build(root/'build', root/'Fonts', root/'state', transaction.WindowsRegistry())
+            self.assertFalse((root/'state').exists())
+
     def fixture(self,root):
         build=root/'build'; fonts=root/'Fonts'; build.mkdir();fonts.mkdir()
         chars=set(MODERN_HANGUL)|{ord(c) for c in TEST_TEXT}

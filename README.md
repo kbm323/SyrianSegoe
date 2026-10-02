@@ -2,6 +2,9 @@
 
 Uses the existing font builder and journaled install/restore path for Korean Windows 11.
 Read [한국어 사용 방법 및 위험사항](README.ko.md).
+The existing GUI now includes a Korean panel: select ordinary `PretendardVariable.ttf`, build/verify, then explicitly apply. The existing Restore button restores the same journal.
+Download the `SyrianSegoe-Korean-GUI` artifact from a successful branch run in [GitHub Actions](https://github.com/kbm323/SyrianSegoe/actions/workflows/korean-build.yml), extract and run `SyrianSegoe.exe`. Artifacts require GitHub sign-in and expire after 14 days; upstream release executables do not contain these changes.
+Builds need no administrator rights or FontForge. Apply requests elevation, preserves the package selection, and requires clicking Apply again; it revalidates before installing and never reboots automatically.
 Default builds remain read-only; `--installable` builds a complete 10-font package from Pretendard Variable.
 `font_transaction.py plan` validates it without changes; administrator `apply` and `restore` explicitly change font registrations.
 Fluent Icons, MDL2, Emoji and Symbol remain excluded. No protected original file is overwritten.

@@ -2,7 +2,7 @@
 
 기존 builder와 journal 설치·복원을 재사용하여 apply/restore 명령을 추가했습니다. Python 3.12.14, FontTools 4.66.1, Windows 11 25H2 (26200.9457)에서 검증했습니다. **실제 시스템 글꼴 등록이나 재부팅 적용은 수행하지 않았습니다.**
 
-- 31개 테스트 통과 및 독립 코드 검토 완료. GitHub Windows CI에서 테스트·컴파일·빌드 CLI·설치 CLI 패키징 성공.
+- 기존 설치용 코드의 31개 테스트 및 독립 코드 검토를 완료했습니다. 이후 기존 GUI에 한국어 흐름을 연결하고 8개 검사를 추가하여 로컬 39개 테스트가 통과했습니다. 실제 CTk 창과 이벤트 루프에서 선택/Static 거절/빌드 실패 차단/적용 취소/상태 복원/권한 요청 취소/소스 복원 재실행/임시 적용·복원 및 공유 FontSubstitutes 차단을 검사합니다. 빌드 단계는 실제 plan 검사를 사용하며 느린 builder만 기존 synthetic 패키지로 대체합니다. 시스템 글꼴은 설치하지 않습니다.
 - 공식 Pretendard Variable 1.3.9로 정적 9종 + 실제 weight 가변 Segoe UI Variable 1종 생성 성공. `--installable` 실제 CLI 빌드 exit 0.
 - 10종 모두 완성형 한글 11,172자와 원본 UI 문자 유지. 원본 line metrics, style/weight/name, 파일 해시 검사.
 - 실제 Variable 파일의 gvar/fvar, 원본 축 범위 및 15개 named instances와 STAT 확인. 300/325/350/375/400/500/600/650/700 굵기에서 외곽선 bounds 검사.
