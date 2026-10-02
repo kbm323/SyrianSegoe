@@ -165,4 +165,9 @@ jobs:
             --verify-tag --draft --prerelease \
             --title "SyrianSegoe Korean $RELEASE_VERSION · Windows 11 × Pretendard" \
             --notes-file release/RELEASE_NOTES.md
+          gh release download "$RELEASE_VERSION" --dir uploaded \
+            --pattern SyrianSegoe-Korean.exe \
+            --pattern SyrianSegoe-Korean-Windows-x64.zip \
+            --pattern SHA256SUMS.txt
+          python3 scripts/package_release.py verify uploaded
           gh release edit "$RELEASE_VERSION" --draft=false --prerelease

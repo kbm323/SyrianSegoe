@@ -1,0 +1,86 @@
+name: Recover verified release assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful Windows release run whose original artifact should be recovered
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: recover-korean-release
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    if: github.repository == 'kbm323/SyrianSegoe'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the successful source run and configured version
+        id: metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SOURCE_RUN: ${{ inputs.run_id }}
+        run: |
+          set -euo pipefail
+          gh run view "$SOURCE_RUN" --json conclusion,name > run.json
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          run = json.loads(Path('run.json').read_text())
+          if run['conclusion'] != 'success' or run['name'] != 'Windows release':
+              raise SystemExit('Only a successful Windows release run can be recovered')
+          version = json.loads(Path('release.json').read_text())['version']
+          if not re.fullmatch(r'v\d+\.\d+\.\d+-ko\.\d+', version):
+              raise SystemExit('Invalid configured version')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'version={version}\n')
+          PY
+      - name: Retrieve the original tested downloads
+        uses: actions/download-artifact@v4
+        with:
+          name: SyrianSegoe-Korean-${{ steps.metadata.outputs.version }}-Windows-x64
+          path: release
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Verify provenance and restore only an empty release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
+        run: |
+          set -euo pipefail
+          python3 scripts/package_release.py verify release
+          python3 - <<'PY'
+          import json, zipfile
+          from pathlib import Path
+          config = json.loads(Path('release.json').read_text())
+          with zipfile.ZipFile('release/SyrianSegoe-Korean-Windows-x64.zip') as archive:
+              metadata = json.loads(archive.read('VERSION.json'))
+          if any(metadata[key] != config[key] for key in ('version', 'source_commit')):
+              raise SystemExit('Artifact version or build source differs from the configured release')
+          PY
+          gh release view "$RELEASE_VERSION" --json assets > existing.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          if json.loads(Path('existing.json').read_text())['assets']:
+              raise SystemExit('Release already has assets; refusing to replace or mix files')
+          PY
+          gh release upload "$RELEASE_VERSION" \
+            release/SyrianSegoe-Korean.exe \
+            release/SyrianSegoe-Korean-Windows-x64.zip \
+            release/SHA256SUMS.txt
+          gh release download "$RELEASE_VERSION" --dir uploaded \
+            --pattern SyrianSegoe-Korean.exe \
+            --pattern SyrianSegoe-Korean-Windows-x64.zip \
+            --pattern SHA256SUMS.txt
+          python3 scripts/package_release.py verify uploaded
+          gh release edit "$RELEASE_VERSION" --draft=false --prerelease
