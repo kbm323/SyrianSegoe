@@ -1,33 +1,12 @@
-## Experimental Korean / Pretendard branch
+## Korean / Pretendard branch
 
-This branch adds **build-only** ordinary Pretendard support for Korean Windows 11.
-Read [한국어 사용 방법 및 위험사항](README.ko.md) before using it.
-The Korean builder creates and validates six Segoe UI and three Malgun Gothic
-text fonts without installing them, modifying the registry, or requesting elevation.
-Korean inputs are blocked from the legacy GUI's Build & Apply path.
-Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Emoji and Segoe UI Symbol are excluded.
-Segoe UI Variable replacement and real Windows UI/rollback testing remain unverified.
-Upstream claims and instructions below describe the original application, not
-verified Korean system application support in this branch.
-
-> # Important Notes
-> By now, we have hit 100 stars. A massive thanks to everyone who has explored and starred this project. I am deeply proud to have built a globally unique tool that takes a completely different, unconventional approach to Windows customization. 
-> I want to remind everyone that this is an open-source initiative, and **contributions are always welcome!** Whether it's submitting pull requests or sharing ideas and solutions, your input is highly appreciated as I continue to push the boundaries of what this tool can do.
-
-
-
-<div align="center">
-
-![SyrianSegoe Banner](screenshots/SyrianSeogoe_Banner_Readme.png)
-
-<br>
-
-![GitHub issues](https://img.shields.io/github/issues/SyrianTurk/SyrianSegoe?label=Issues)
-![GitHub license](https://img.shields.io/github/license/SyrianTurk/SyrianSegoe?color=blue&label=License)
-![GitHub last commit](https://img.shields.io/github/last-commit/SyrianTurk/SyrianSegoe/main?label=Last%20commit)
-![GitHub code size](https://img.shields.io/github/languages/code-size/SyrianTurk/SyrianSegoe?label=Code%20size)
-
-</div>
+Uses the existing font builder and journaled install/restore path for Korean Windows 11.
+Read [한국어 사용 방법 및 위험사항](README.ko.md).
+Default builds remain read-only; `--installable` builds a complete 10-font package from Pretendard Variable.
+`font_transaction.py plan` validates it without changes; administrator `apply` and `restore` explicitly change font registrations.
+Fluent Icons, MDL2, Emoji and Symbol remain excluded. No protected original file is overwritten.
+Real Windows UI/reboot/rollback behavior is still unverified; Variable opsz accepts coordinates without optical redesign.
+Upstream instructions below describe the original application.
 
 # SyrianSegoe
 **A Next-Gen Windows System Font Setting Tool**

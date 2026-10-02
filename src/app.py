@@ -1059,10 +1059,10 @@ class SyrianSegoeApp(ctk.CTk):
                 with TTFont(path) as selected_font:
                     korean_input = korean_input or any(is_hangul(cp) for cp in (selected_font.getBestCmap() or {}))
             if korean_input:
-                messagebox.showinfo('Korean build-only support',
-                    '한국어 글꼴의 시스템 적용은 아직 지원하지 않습니다.\n'
-                    'README.ko.md의 korean_builder.py 빌드 전용 명령을 사용하세요.\n'
-                    '시스템 글꼴이나 레지스트리는 변경하지 않습니다.')
+                messagebox.showinfo('Korean Pretendard installation',
+                    '한국어 Pretendard는 검증된 10종 패키지 설치 경로를 사용하세요.\n'
+                    'README.ko.md의 --installable 빌드 및 font_transaction.py apply 명령을 사용하세요.\n'
+                    '이 창에서는 적용하지 않습니다. 별도 설치 명령이 백업 후 적용합니다.')
                 return
         except Exception as exc:
             messagebox.showerror('Invalid font', str(exc))

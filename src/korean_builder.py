@@ -10,6 +10,11 @@ import tempfile
 import sys
 
 from fontTools import subset
+from fontTools.pens.recordingPen import DecomposingRecordingPen
+from fontTools.pens.transformPen import TransformPen
+from fontTools.pens.ttGlyphPen import TTGlyphPen
+from fontTools.designspaceLib import DesignSpaceDocument, AxisDescriptor, SourceDescriptor
+from fontTools.varLib import build as build_variations
 from fontTools.merge import Merger
 from fontTools.ttLib import TTFont, newTable
 from fontTools.ttLib.scaleUpem import scale_upem
@@ -133,7 +138,7 @@ def supply_vertical_metrics(font, template):
         font['vmtx'].metrics[name] = (font['head'].unitsPerEm, top)
 
 
-def build_font(source_path, reference_path, output_path, weight=None):
+def build_font(source_path, reference_path, output_path, weight=None, fit_bounds=False):
     source_path, reference_path, output_path = map(Path, (source_path, reference_path, output_path))
     target = TARGET_BY_FILENAME.get(reference_path.name.lower())
     if not target or output_path.name != target.output_filename:
@@ -227,13 +232,16 @@ def build_font(source_path, reference_path, output_path, weight=None):
                 built['OS/2'].recalcCodePageRanges(built)
                 if 'DSIG' in built:
                     del built['DSIG']
+                line_top = min(reference['hhea'].ascent, reference['OS/2'].usWinAscent)
+                line_bottom = max(reference['hhea'].descent, -reference['OS/2'].usWinDescent)
+                fitted = fit_outlines(built, line_top, line_bottom) if fit_bounds else 0
                 candidate = Path(tmp) / target.output_filename
                 built.save(candidate)
                 report = inspect_font(candidate, reference_path, original_cmap)
                 candidate.replace(output_path)
             report.update(source_sha256=sha256(source_path), reference_sha256=sha256(reference_path),
                           reference_file=target.filename, source_weight=weight or target.weight,
-                          fallback_codepoints=len(fallback),
+                          fallback_codepoints=len(fallback), fitted_glyphs=fitted,
                           rollback='Original files are read-only; no system changes were made')
             if korean_donor:
                 report['korean_fallback'] = {'reference_file': korean_path.name,
@@ -246,11 +254,13 @@ def build_font(source_path, reference_path, output_path, weight=None):
             built.close()
 
 
-def build_all(source, references, output, include_malgun=True):
+def build_all(source, references, output, include_malgun=True, installable=False):
     source, references, output = map(Path, (source, references, output))
     guard_output(output, references)
     if output.exists():
         raise ValueError('Choose a new output directory; existing builds are never overwritten')
+    if installable and (not source.is_file() or not include_malgun):
+        raise ValueError('Installable mode requires Pretendard Variable and Malgun targets')
     if source.is_file():
         with TTFont(source) as input_font:
             if 'fvar' not in input_font:
@@ -259,6 +269,8 @@ def build_all(source, references, output, include_malgun=True):
     for target in targets:
         if not (references / target.filename).is_file():
             raise ValueError(f'Missing original reference: {target.filename}')
+    if installable and not (references / 'SegUIVar.ttf').is_file():
+        raise ValueError('Missing original SegUIVar.ttf')
     paths = {}
     for target in targets:
         path = source if source.is_file() else source / f'Pretendard-{target.static_style}.ttf'
@@ -269,18 +281,172 @@ def build_all(source, references, output, include_malgun=True):
     staging = Path(tempfile.mkdtemp(prefix='.korean-build-', dir=output.parent))
     try:
         reports = [build_font(paths[t.filename], references / t.filename,
-                              staging / t.output_filename, t.weight) for t in targets]
+                              staging / t.output_filename, t.weight, fit_bounds=installable) for t in targets]
+        if installable:
+            reports.append(build_variable_font(source, references / 'SegUIVar.ttf', staging / 'SegUIVar_system_mod.ttf'))
         report = {'mode': 'build-only', 'system_modified': False, 'fonts': reports,
                   'excluded': ['Segoe Fluent Icons', 'Segoe MDL2 Assets', 'Segoe UI Emoji',
                                'Segoe UI Symbol', 'Segoe UI Variable'],
                   'static_mapping': {'Segoe UI Semilight': 'Pretendard Light (300); target metadata 350'},
-                  'apply_supported': False}
+                  'apply_supported': installable, 'schema': 1}
+        if installable:
+            report['excluded'].remove('Segoe UI Variable')
+            report['mode'] = 'installable'
+            report['optical_size_behavior'] = 'accepted; Pretendard outlines invariant'
         (staging / 'validation.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
         staging.rename(output)
         return report
     finally:
         if staging.exists():
             shutil.rmtree(staging)
+
+
+def fit_outlines(font, ascent, descent, scales=None, flatten=False):
+    """Fit exceptional outlines to the existing line box; keep advance widths.
+
+    No global shrink: ordinary Hangul is left untouched. Remove hint programs
+    so stale instructions cannot move the adjusted outlines outside the box.
+    """
+    glyph_set = font.getGlyphSet()
+    recordings = {}
+    factors = {}
+    for name in font.getGlyphOrder():
+        glyph = font['glyf'][name]
+        glyph.recalcBounds(font['glyf'])
+        factor = 1.0
+        if hasattr(glyph, 'yMax'):
+            if glyph.yMax > ascent: factor = min(factor, (ascent - 2) / glyph.yMax)
+            if glyph.yMin < descent: factor = min(factor, (descent + 2) / glyph.yMin)
+        if scales is not None: factor = min(factor, scales.get(name, 1.0))
+        factors[name] = factor
+        if factor < 1 or flatten:
+            recording = DecomposingRecordingPen(glyph_set)
+            glyph_set[name].draw(recording)
+            recordings[name] = recording
+    for name, recording in recordings.items():
+        pen = TTGlyphPen(None)
+        recording.replay(TransformPen(pen, (1, 0, 0, factors[name], 0, 0)))
+        font['glyf'][name] = pen.glyph()
+    for glyph in font['glyf'].glyphs.values():
+        if hasattr(glyph, 'program'): glyph.program.fromBytecode([])
+    for tag in ('fpgm', 'prep', 'cvt ', 'hdmx', 'LTSH', 'VDMX'):
+        if tag in font: del font[tag]
+    font['maxp'].maxSizeOfInstructions = 0
+    return sum(f < 1 for f in factors.values())
+
+
+def build_variable_font(source_path, reference_path, output_path):
+    """Real weight-variable replacement with reference UI names/opsz coordinates.
+
+    Pretendard has no optical-size outlines: opsz is accepted, with invariant
+    Pretendard outlines. This is explicit compatibility, not Segoe optical design.
+    """
+    source_path, reference_path, output_path = map(Path, (source_path, reference_path, output_path))
+    guard_output(output_path, reference_path.parent)
+    if reference_path.name.lower() != 'seguivar.ttf' or output_path.name != 'SegUIVar_system_mod.ttf':
+        raise ValueError('Variable replacement requires the SegUIVar text target')
+    if output_path.exists(): raise ValueError('Existing variable output')
+    with TTFont(source_path) as source, TTFont(reference_path) as reference:
+        check_source(source)
+        if 'fvar' not in source or 'fvar' not in reference:
+            raise ValueError('Variable replacement requires Pretendard Variable and original SegUIVar')
+        if 'Segoe UI Variable' not in font_families(reference):
+            raise ValueError('Unexpected variable reference family')
+        ref_axes = {a.axisTag:a for a in reference['fvar'].axes}
+        if set(ref_axes) - {'wght','opsz'} or 'wght' not in ref_axes:
+            raise ValueError('Unsupported SegUIVar axes')
+        weight = ref_axes['wght']
+        weights = sorted({weight.minValue,weight.defaultValue,weight.maxValue} |
+                         {w for w in (300,350,600,700) if weight.minValue <= w <= weight.maxValue})
+        source_weights = next(a for a in source['fvar'].axes if a.axisTag == 'wght')
+        if source_weights.minValue > min(weights) or source_weights.maxValue < max(weights):
+            raise ValueError('Pretendard weight range does not cover SegUIVar')
+        output_path.parent.mkdir(parents=True,exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix='korean-variable-',dir=output_path.parent) as tmp:
+            tmp = Path(tmp); (tmp/'refs').mkdir()
+            donor_reference = copy.deepcopy(reference)
+            # Default-only fallback: avoid dangling device variation indices in
+            # Windows 25H2 SegUIVar GPOS. Pretendard layout tables stay intact.
+            if 'GPOS' in donor_reference: del donor_reference['GPOS']
+            fixed_reference = instantiateVariableFont(donor_reference,
+                {a.axisTag:a.defaultValue for a in reference['fvar'].axes}, inplace=False)
+            fixed_reference['name'].setName('Segoe UI',1,3,1,0x409)
+            fixed_reference['name'].setName('Segoe UI',16,3,1,0x409)
+            fixed_reference.save(tmp/'refs/segoeui.ttf'); fixed_reference.close(); donor_reference.close()
+            # Stable fallback donor, glyph order and topology across every master.
+            for n in ('malgun.ttf','malgunbd.ttf'):
+                donor=reference_path.parent/n
+                if donor.exists(): shutil.copyfile(donor,tmp/'refs'/n)
+            masters=[]
+            for w in weights:
+                master_dir=tmp/str(w); master_dir.mkdir()
+                path=master_dir/'segoeui_system_mod.ttf'
+                build_font(source_path,tmp/'refs/segoeui.ttf',path,w)
+                masters.append((w,path))
+            fonts=[TTFont(path) for _,path in masters]
+            try:
+                order=fonts[0].getGlyphOrder()
+                if any(f.getGlyphOrder()!=order for f in fonts):
+                    raise ValueError('Variable master glyph orders differ')
+                m=metrics(reference); top=min(m['ascent'],m['win_ascent']); bottom=max(m['descent'],-m['win_descent'])
+                scales={}
+                for f in fonts:
+                    for name in order:
+                        g=f['glyf'][name];g.recalcBounds(f['glyf']);factor=1.0
+                        if hasattr(g,'yMax'):
+                            if g.yMax>top:factor=min(factor,(top-2)/g.yMax)
+                            if g.yMin<bottom:factor=min(factor,(bottom+2)/g.yMin)
+                        scales[name]=min(scales.get(name,1.0),factor)
+                # ponytail: fixed default shaping; use compatible variable OTL
+                # reconstruction only if weight-dependent feature selection is needed.
+                default_font = fonts[weights.index(weight.defaultValue)]
+                layout = {tag:copy.deepcopy(default_font[tag]) for tag in ('GSUB','GPOS','GDEF') if tag in default_font}
+                for (w,path),f in zip(masters,fonts):
+                    for tag in ('GSUB','GPOS','GDEF'):
+                        if tag in layout: f[tag]=copy.deepcopy(layout[tag])
+                        elif tag in f: del f[tag]
+                    fit_outlines(f,top,bottom,scales=scales,flatten=True)
+                    f['OS/2'].usWeightClass=round(w);f.save(path)
+            finally:
+                for f in fonts:f.close()
+            ds=DesignSpaceDocument()
+            for a in reference['fvar'].axes:
+                desc=AxisDescriptor();desc.name=a.axisTag;desc.tag=a.axisTag
+                desc.minimum=a.minValue;desc.default=a.defaultValue;desc.maximum=a.maxValue
+                ds.addAxis(desc)
+            for w,path in masters:
+                desc=SourceDescriptor();desc.path=str(path);desc.name=str(w)
+                desc.location={a.axisTag:(w if a.axisTag=='wght' else a.defaultValue) for a in reference['fvar'].axes}
+                if w==weight.defaultValue:desc.copyInfo=desc.copyLib=desc.copyFeatures=True
+                ds.addSource(desc)
+            variable,_,_=build_variations(ds)
+            try:
+                variable['fvar']=copy.deepcopy(reference['fvar'])
+                if 'STAT' in reference:variable['STAT']=copy.deepcopy(reference['STAT'])
+                # Keep varLib's weight normalization (identity), not Segoe's avar.
+                variable['name'].names=[r for r in variable['name'].names if r.nameID not in NAME_IDS|{3} and r.nameID<256]
+                variable['name'].names.extend(copy.deepcopy(r) for r in reference['name'].names if r.nameID in NAME_IDS or r.nameID>=256)
+                variable['name'].setName('SyrianSegoe-Korean-Variable-'+sha256(source_path)[:12],3,3,1,0x409)
+                candidate=tmp/'SegUIVar_system_mod.ttf';variable.save(candidate)
+                samples=[]
+                validation_weights = sorted(set(weights) | {w for w in (325,375,500,650) if weight.minValue <= w <= weight.maxValue})
+                for w in validation_weights:
+                    coords={a.axisTag:(w if a.axisTag=='wght' else a.defaultValue) for a in reference['fvar'].axes}
+                    instance=instantiateVariableFont(variable,coords,inplace=False)
+                    path=tmp/'instance.ttf';instance.save(path);instance.close()
+                    check=inspect_font(path,None,set(source.getBestCmap()))
+                    if check['outline_exceeds_windows_bounds'] or check['outline_exceeds_hhea_bounds']:
+                        raise ValueError('Variable instance exceeds line bounds')
+                    samples.append({'weight':w,'bounds':check['bounds']})
+                candidate.replace(output_path)
+                report=check.copy();report.update(file=output_path.name,sha256=sha256(output_path),
+                    family=sorted(font_families(variable)),weight=weight.defaultValue,
+                    source_sha256=sha256(source_path),reference_sha256=sha256(reference_path),
+                    reference_file=reference_path.name,axes=[{'tag':a.axisTag,'min':a.minValue,'default':a.defaultValue,'max':a.maxValue} for a in variable['fvar'].axes],
+                    variable_samples=samples,layout_behavior='default weight GSUB/GPOS across weights',optical_size_behavior='accepted; Pretendard outlines invariant',
+                    fitted_glyphs=sum(f<1 for f in scales.values()))
+                return report
+            finally:variable.close()
 
 
 def main():
@@ -291,9 +457,10 @@ def main():
     parser.add_argument('--references', type=Path, default=Path(os.environ.get('WINDIR', 'C:/Windows')) / 'Fonts')
     parser.add_argument('--output', type=Path, required=True, help='New directory outside Windows/Fonts')
     parser.add_argument('--segoe-only', action='store_true')
+    parser.add_argument('--installable', action='store_true', help='Build a bounded 10-font installable package; Variable input required')
     args = parser.parse_args()
     try:
-        report = build_all(args.source, args.references, args.output, not args.segoe_only)
+        report = build_all(args.source, args.references, args.output, not args.segoe_only, installable=args.installable)
     except Exception as exc:
         parser.exit(1, f'Build failed; no fonts installed: {exc}\n')
     print(json.dumps(report, ensure_ascii=False, indent=2))

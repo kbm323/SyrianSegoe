@@ -1,8 +1,8 @@
 # 한국어 Windows 11 + Pretendard 실험 브랜치
 
-이 브랜치는 SyrianTurk/SyrianSegoe의 한글 삭제 경로를 수정하고, **시스템에 적용하지 않는 한국어 빌드 전용 경로**를 추가한다. 기준 저장소는 GitHub의 `kbm323/SyrianSegoe`, 브랜치는 `pretendard-korean-support`다. 로컬 체크아웃·생성 글꼴은 임시 검증 자료다.
+이 브랜치는 SyrianTurk/SyrianSegoe의 한글 삭제 경로를 수정하고, **기존 설치·복원을 재사용하는 한국어 경로**를 추가한다. 기준 저장소는 GitHub의 `kbm323/SyrianSegoe`, 브랜치는 `pretendard-korean-support`다. 로컬 체크아웃·생성 글꼴은 임시 검증 자료다.
 
-**현재 실제 적용을 권장하지 않는다.** 글꼴 생성 성공과 Windows UI 적용 성공은 다르다. 모든 결과에서 일부 전체 글리프 윤곽의 metrics 초과가 관찰됐으며, 시작 메뉴·설정·로그인 화면·DPI별 렌더링·재부팅 후 Restore는 아직 검증하지 않았다. 한국어 입력은 기존 GUI의 Build & Apply 진입 전에 차단한다. 이 브랜치의 한국어 지원 명령에는 설치 옵션이 없다.
+**설치 가능한 패키지 생성과 apply/restore 명령을 제공합니다.** 이 작업에서는 실제 PC에 적용하지 않았으므로 시작 메뉴·설정·로그인 화면·DPI별 렌더링·재부팅 후 Restore는 아직 검증하지 않았습니다. 기존 GUI의 일반 합성 경로로 한국어를 보내지 않고 아래 한국어 설치 명령을 사용합니다. 기존의 기본 빌드 전용 모드도 유지합니다.
 
 ## 원본 분석과 변경점
 
@@ -11,7 +11,7 @@
 | `engine.py`, `grid_sync_engine.py`, 두 italic 엔진 | 한글·CJK 보존 범위 확장, 실제 `unicode`와 `altuni` 보호 우선 처리, 한글이 있는 글꼴의 GSUB/GPOS 유지. TTF 생성 실패 시 SFD를 `.ttf`로 저장하던 fallback 제거. weight 실패를 프로세스 실패로 반환 |
 | `variable_slicer.py` | Segoe UI cmap만 기준으로 subset하면서 한글을 삭제하던 경로 수정. 한글·한국어 문자 범위 추가. 기존 Variable placeholder에 시스템 이름 적용. 이 placeholder가 실제 Segoe UI Variable 축/동작을 재현한다고 보장하지 않음 |
 | `glyph_policy.py` | 네 엔진과 slicer가 공유하는 한국어 문자 보존 정책 |
-| `font_targets.py`, `korean_builder.py` | 허용된 텍스트 대상 9개만 FontTools로 생성·검사. Static 및 Variable 입력 지원, Malgun Gothic 지원, 시스템 원본은 읽기 전용 |
+| `font_targets.py`, `korean_builder.py` | 기본 빌드 9종 및 설치용 10종(Variable 포함)을 FontTools로 생성·검사. Static 및 Variable 입력 지원, Malgun Gothic 지원, 시스템 원본은 읽기 전용 |
 | `app.py`, `font_backup.py` | 한글 입력의 기존 적용 차단. Segoe/Malgun 원본 백업 추가 및 재실행 시 덮어쓰기 방지. 해시 검증 |
 | `font_transaction.py` | 기존 GUI 적용 경로를 journal 방식으로 보강. 전체 생성물 사전검사, 원래 레지스트리 값 기록, 중간 실패 보상 복구, 영구 journal 기반 Restore. 이번 작업에서는 실제 설치 호출을 실행하지 않음 |
 | `segoe_cloner.py` | Segoe UI Clone 별도 설치 기능임을 확인. 한국어 builder가 호출하지 않으며 Malgun/아이콘 복제 기능을 추가하지 않음 |
@@ -50,7 +50,7 @@ Pretendard 일반판에는 `漢字`가 없었다. Segoe UI 역시 한자 공급�
 | Malgun Gothic Regular | malgun.ttf | Pretendard-Regular.ttf | 400 |
 | Malgun Gothic Bold | malgunbd.ttf | Pretendard-Bold.ttf | 700 |
 
-Static에는 350 굵기가 없으므로 Segoe Semilight는 300 윤곽을 사용하고 Windows 대상의 weight metadata는 보존한다. Variable은 350을 실제 instantiate한다. Variable 입력도 이번 경로의 출력은 **정적 TTF**다. `SegUIVar.ttf`를 교체하거나 Windows의 Variable Display/Text/Small 동작을 구현하지 않는다. 현대 Windows UI 일부가 원래 글꼴을 계속 사용하므로 전체 OS의 완전한 통일을 보장하지 않는다. 별도 italic 생성은 이번 한국어 builder의 지원 대상이 아니다.
+Static에는 350 굵기가 없으므로 Segoe Semilight는 300 윤곽을 사용하고 Windows 대상의 weight metadata는 보존한다. Variable은 350을 실제 instantiate한다. 기본 빌드의 9개 출력은 **정적 TTF**다. `--installable`은 추가로 실제 weight 가변 `SegUIVar_system_mod.ttf`를 생성한다. Windows 원본의 축 범위, 명명된 Small/Text/Display 인스턴스와 이름을 유지한다. Pretendard에는 opsz 디자인이 없으므로 opsz 좌표는 받되 같은 윤곽을 사용하며 Segoe의 광학 크기 디자인을 재현하지 않는다. 현대 Windows UI 일부가 원래 글꼴을 계속 사용하므로 전체 OS의 완전한 통일을 보장하지 않는다. 별도 italic 생성은 이번 한국어 builder의 지원 대상이 아니다.
 
 Microsoft는 Malgun Gothic을 한국어 UI 글꼴로 설명하고 Windows 11에 세 원본 파일을 포함한다. 따라서 Segoe UI만 생성하는 것보다 Malgun 이름·metadata를 가진 결과물까지 준비하는 것이 필요하다고 판단했다. 단, 특정 시작 메뉴/설정 화면의 실제 fallback 선택은 이번 작업에서 추적하지 않았다.
 
@@ -138,7 +138,7 @@ Segoe Fluent Icons의 `SegoeIcons.ttf`, Segoe MDL2 Assets의 `segmdl2.ttf`, Sego
 
 빌드 전용 경로는 원본을 읽기만 하므로 시스템 복구할 변경이 없다. 실패한 빌드는 새 출력 경로로 다시 수행한다. 생성 파일을 보관할 필요가 없으면 그 임시 출력 폴더만 정리한다. 시스템 Fonts나 레지스트리를 수정할 필요가 없다.
 
-기존 GUI의 원본 백업 위치는 실행 `%USERPROFILE%\Documents\SyrianSegoe\Original_Segoe_Backups`다. Segoe UI 원본 13개와 Malgun 3개를 허용 목록으로 백업하며 최초 파일을 덮어쓰지 않는다. `backup_manifest.json`의 해시와 실제 백업이 다르면 재사용을 차단한다. 이미 존재하던 upstream 백업은 현재 내용의 해시를 등록할 뿐, 그 파일이 역사적으로 올바른 원본이었다고 증명하지 못한다.
+기존 GUI의 원본 백업 위치는 `%USERPROFILE%\Documents\SyrianSegoe\Original_Segoe_Backups`다. Segoe UI 원본 13개와 Malgun 3개를 허용 목록으로 백업하며 최초 파일을 덮어쓰지 않는다. `backup_manifest.json`의 해시와 실제 백업이 다르면 재사용을 차단한다. 이미 존재하던 upstream 백업은 현재 내용의 해시를 등록할 뿐, 그 파일이 역사적으로 올바른 원본이었다고 증명하지 못한다.
 
 기존 비한국어 GUI 적용 경로는 전체 생성물을 먼저 검사하고 `font_transaction.json`에 변경 전 레지스트리 값과 새 파일 해시를 기록한다. 원본 Windows 파일을 덮어쓰지 않고 새 이름으로 설치한다. 중간 실패 시 기록된 값을 복원하고 해당 새 파일만 제거한다. 다음 GUI 실행에서 journal이 남아 있으면 새 적용을 막는다. Restore는 journal을 먼저 사용하여 변경 전 값을 복원한다.
 
@@ -150,13 +150,13 @@ Segoe Fluent Icons의 `SegoeIcons.ttf`, Segoe MDL2 Assets의 `segmdl2.ttf`, Sego
 4. journal이 없는 과거 upstream 적용은 기존 Segoe UI 기본 파일명 연결 복구를 사용한다. 과거 사용자 지정 레지스트리 값까지 복구했다고 보장할 수 없다.
 5. Windows 업데이트 후 원본 파일이 달라지면 백업 보고서 `changed_sources`를 확인한다. 오래된 백업을 현재 시스템 원본 위에 강제로 복사하지 않는다. 현재 OS의 원본과 journal을 다시 검토한다.
 
-가짜 레지스트리와 임시 디렉터리에서 중간 실패/재시작 후 journal Restore/누락 weight/아이콘 차단을 테스트했다. 실제 관리자 권한·파일 잠금·갑작스러운 종료·재부팅·Windows 업데이트 후 복구는 미검증이다. rollback 역시 절대적인 원복 보장이 아니다. 한국어 builder에는 실제 적용이 없으므로 Malgun의 실환경 설치 후 Restore도 미검증이다.
+가짜 레지스트리와 임시 디렉터리에서 중간 실패/재시작 후 journal Restore/누락 weight/아이콘 차단을 테스트했다. 실제 관리자 권한·파일 잠금·갑작스러운 종료·재부팅·Windows 업데이트 후 복구는 미검증이다. rollback 역시 절대적인 원복 보장이 아니다. 한국어 설치 명령은 아래에 추가되어 있으나 Malgun의 실환경 설치 후 Restore는 미검증이다.
 
 ## 실제 적용 전 확인 사항
 
 - 한글·원본 UI 문자 누락이 없고 모든 출력 테이블 검사가 통과해야 한다.
 - 글자 bounds 초과 원인을 해결하거나 영향을 평가하고, 작은 크기/DPI별 한글·영문·숫자 baseline과 잘림을 실제로 확인해야 한다.
-- Segoe UI Variable·fallback·로그인 화면을 포함한 UI 적용 범위와 italic 지원을 별도로 설계해야 한다.
+- Variable의 실제 UI 선택·로그인 화면과 italic 지원은 추가 검증 대상이다.
 - VM 또는 복구 가능한 테스트 환경에서 설치·중간 실패·재부팅·Restore를 검증해야 한다.
 - system filename 충돌이 없어야 하고 Fluent Icons·MDL2·Emoji·아이콘 리소스 해시가 유지돼야 한다.
 - 원본 백업과 현재 OS 버전의 일치, journal 보존, 시스템 복원 경로를 확인해야 한다.
@@ -173,3 +173,43 @@ GitHub에는 소스·테스트·문서·검증 숫자와 해시만 저장한다.
 기존 GUI의 백업과 변경 기록은 `%USERPROFILE%\Documents\SyrianSegoe\Original_Segoe_Backups`에 보관합니다. 단일 실행 파일의 임시 압축 해제 폴더가 삭제되어도 유지됩니다. 이전 버전의 코드 폴더에 있는 백업은 자동 이동하지 않으며, 이전 적용 상태라면 해당 버전에서 먼저 복원하세요. 복사 중 실패한 파일은 생성 시 기록한 파일 식별자가 일치하는 경우에만 삭제합니다. 외부에서 바뀐 파일이나 잠긴 파일은 변경 기록을 유지하고 수동 확인 또는 재시작 후 복원을 요구합니다.
 
 검증 결과와 각 출력의 메트릭/해시는 [검증 기록](docs/validation/README.ko.md)을 참고하세요.
+
+
+## 실제 적용용 패키지와 설치·복원
+
+일반판도 빌드 전용 모드에서는 지원합니다. 아래 전체 설치 패키지는 **공식 Pretendard Variable TTF**를 사용합니다. 기존 빌더와 기존 journal 설치·복원 함수를 그대로 재사용하며 새 런타임 의존성은 없습니다.
+
+일반 PowerShell에서 빌드와 설치 계획 검사를 실행합니다. 이 두 명령은 시스템을 변경하지 않습니다.
+
+```powershell
+python src/korean_builder.py --installable `
+  --source "C:\temp\Pretendard\public\variable\PretendardVariable.ttf" `
+  --output "C:\temp\SyrianSegoe-Korean-installable"
+python src/font_transaction.py plan --build "C:\temp\SyrianSegoe-Korean-installable"
+```
+
+설치용 모드는 Segoe 6종, 맑은 고딕 3종, Segoe UI Variable 1종을 묶습니다. 기존 줄높이와 advance width는 유지하고 세로 범위를 초과한 예외 글리프만 baseline 기준으로 높이를 조정합니다. 영향을 받은 글리프 수는 보고서의 `fitted_glyphs`에 기록합니다. 일반 한글을 일괄 축소하지 않습니다. 조정된 글리프는 원래 디자인과 높이가 달라질 수 있으며 기존 hint 명령은 제거합니다. Variable의 모든 master는 같은 glyph topology와 조정 비율을 사용합니다. FontTools가 이 PC의 Windows 25H2 원본 SegUIVar GPOS variation 인덱스를 처리하지 못하는 문제를 피하려고 참조 보조 글리프는 기본 인스턴스의 GSUB와 윤곽을 사용합니다. Pretendard의 기본 굵기 GSUB/GPOS를 모든 Variable master에 동일하게 유지합니다. 가중치에 따라 달라지는 feature 선택과 kerning 보간은 재현하지 않습니다. 이는 master별 lookup 구조가 달라 합성이 실패하는 경우를 피하기 위한 제한입니다.
+
+적용을 결정한 뒤 **같은 Windows 사용자 계정의 관리자 PowerShell**에서 다음 명령을 실행합니다. apply만 시스템을 변경합니다. 기존 원본 파일을 덮어쓰지 않고 별도 생성 파일을 설치한 후 Fonts 레지스트리 연결을 바꿉니다. 실제 적용에는 재부팅이 필요합니다. 기존 FontSubstitutes에 해당 글꼴 대체 설정이 있으면 충돌을 피하도록 설치를 거절합니다. FontCache 삭제, 서비스 종료, 보호 해제, MacType 설치 및 자동 재부팅은 하지 않습니다.
+
+```powershell
+python src/font_transaction.py apply --build "C:\temp\SyrianSegoe-Korean-installable"
+```
+
+백업/변경 기록/`Restore.reg`는 `%USERPROFILE%\Documents\SyrianSegoe\Original_Segoe_Backups`에 남습니다. 잠겨 삭제할 수 없는 생성 파일은 journal을 유지하며 재시작 후 다시 restore해야 합니다.
+
+```powershell
+python src/font_transaction.py restore
+```
+
+GUI/Python을 실행하기 어려울 때는 관리자 PowerShell에서 아래 **레지스트리 연결만 먼저 복원**한 뒤 재부팅합니다. 이후 정상 restore로 생성 파일을 정리합니다. REG 파일만으로 생성 파일이 삭제되지는 않습니다.
+
+```powershell
+reg import "$env:USERPROFILE\Documents\SyrianSegoe\Original_Segoe_Backups\Restore.reg"
+```
+
+`build.ps1`은 기존 GUI, 빌드 CLI, 설치·복원 CLI를 패키징합니다. 실행 파일을 사용하는 경우 `SyrianSegoe-Korean-Build.exe`와 `SyrianSegoe-Korean-Install.exe`에 각각 같은 인수를 전달하면 됩니다. 이 PC에서는 Windows 앱 제어가 자체 생성 EXE 실행을 차단했으므로 정책을 끄지 말고 Python 소스 명령으로 실행하세요.
+
+Windows 업데이트로 원본 해시가 바뀌거나 출력 파일이 수정되면 plan/apply는 거절합니다. 다시 빌드해야 하며 이전 적용이 있다면 먼저 복원해야 합니다. 시작 메뉴 등 일부 UI가 레지스트리 대신 원본 경로를 직접 읽으면 변경이 반영되지 않을 수 있습니다. 보호된 원본을 강제로 덮어쓰는 기능은 포함하지 않습니다.
+
+이 변경은 [Ponytail](https://github.com/DietrichGebert/ponytail/blob/main/skills/ponytail/SKILL.md)의 재사용 우선 지침에 따라 기존 builder/FontTools와 install_font_set/restore_font_set을 연결했습니다. 새 폰트 엔진이나 별도 설치 프레임워크를 추가하지 않았습니다.

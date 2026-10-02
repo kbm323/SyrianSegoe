@@ -1,4 +1,4 @@
-name: Korean build-only checks
+name: Korean font checks
 on:
   push:
     branches: [pretendard-korean-support]
@@ -19,4 +19,6 @@ jobs:
       - run: python -m compileall -q src tests
       - name: Package build-only CLI
         run: python -m PyInstaller --noconfirm --onefile --name SyrianSegoe-Korean-Build --paths src src/korean_builder.py
+      - name: Package Korean installer without executing it
+        run: python -m PyInstaller --noconfirm --onefile --name SyrianSegoe-Korean-Install --paths src src/font_transaction.py
       # No generated Windows/Pretendard fonts are published, and no install runs.
