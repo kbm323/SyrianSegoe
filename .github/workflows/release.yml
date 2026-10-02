@@ -1,0 +1,133 @@
+name: Windows release
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/release.yml
+      - scripts/**
+      - tests/test_release_package.py
+      - docs/release/**
+      - release.json
+  push:
+    tags: ['v*-ko.*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Test and package Windows x64
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Read the version and immutable build source
+        id: metadata
+        shell: pwsh
+        env:
+          RELEASE_REF_TYPE: ${{ github.ref_type }}
+          RELEASE_REF_NAME: ${{ github.ref_name }}
+        run: |
+          @'
+          import json, os, re
+          from pathlib import Path
+          config = json.loads(Path('release.json').read_text())
+          version, commit = config['version'], config['source_commit']
+          if not re.fullmatch(r'v\d+\.\d+\.\d+-ko\.\d+', version):
+              raise SystemExit('Invalid Korean prerelease version')
+          if not re.fullmatch(r'[0-9a-f]{40}', commit):
+              raise SystemExit('Build source must be an exact commit')
+          if os.environ['RELEASE_REF_TYPE'] == 'tag' and os.environ['RELEASE_REF_NAME'] != version:
+              raise SystemExit('Tag does not match release.json; update the manifest first')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'version={version}\nsource_commit={commit}\n')
+          '@ | python -
+      - name: Checkout the pinned Korean implementation
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.metadata.outputs.source_commit }}
+          path: build-source
+          persist-credentials: false
+      - name: Verify source revision
+        shell: pwsh
+        env:
+          EXPECTED_COMMIT: ${{ steps.metadata.outputs.source_commit }}
+        run: |
+          $actual = git -C build-source rev-parse HEAD
+          if ($LASTEXITCODE -ne 0 -or $actual -ne $env:EXPECTED_COMMIT) { throw 'Source revision mismatch' }
+      - name: Install pinned build dependencies
+        run: python -m pip install -r build-source/src/requirements-build.txt
+      - name: Check dependencies
+        run: python -m pip check
+      - name: Test release assembly
+        run: python -m unittest discover -s tests -v
+      - name: Test the Korean application (no system font installation)
+        working-directory: build-source
+        run: python -m unittest discover -s tests -v
+      - name: Compile Python sources
+        run: python -m compileall -q scripts tests build-source/src build-source/tests
+      - name: Build GUI and CLI executables
+        working-directory: build-source
+        shell: pwsh
+        run: ./build.ps1
+      - name: Assemble and verify downloads
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ steps.metadata.outputs.version }}
+          SOURCE_COMMIT: ${{ steps.metadata.outputs.source_commit }}
+        run: |
+          python scripts/package_release.py build --dist build-source/dist --source build-source --output release --version $env:RELEASE_VERSION --source-commit $env:SOURCE_COMMIT
+          if ($LASTEXITCODE -ne 0) { throw 'Release assembly failed' }
+          python scripts/package_release.py verify release
+          if ($LASTEXITCODE -ne 0) { throw 'Release verification failed' }
+      - name: Save reviewable downloads and release notes
+        uses: actions/upload-artifact@v4
+        with:
+          name: SyrianSegoe-Korean-${{ steps.metadata.outputs.version }}-Windows-x64
+          path: |
+            release/SyrianSegoe-Korean.exe
+            release/SyrianSegoe-Korean-Windows-x64.zip
+            release/SHA256SUMS.txt
+            release/RELEASE_NOTES.md
+          if-no-files-found: error
+          retention-days: 14
+
+  draft:
+    name: Create a prerelease draft
+    needs: build
+    if: github.event_name == 'push' && github.ref_type == 'tag' && github.repository == 'kbm323/SyrianSegoe'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: SyrianSegoe-Korean-${{ needs.build.outputs.version }}-Windows-x64
+          path: release
+      - name: Verify downloads and create draft without replacing existing assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -euo pipefail
+          python3 scripts/package_release.py verify release
+          gh release create "$RELEASE_VERSION" \
+            release/SyrianSegoe-Korean.exe \
+            release/SyrianSegoe-Korean-Windows-x64.zip \
+            release/SHA256SUMS.txt \
+            --verify-tag --draft --prerelease \
+            --title "SyrianSegoe Korean $RELEASE_VERSION · Windows 11 × Pretendard" \
+            --notes-file release/RELEASE_NOTES.md
