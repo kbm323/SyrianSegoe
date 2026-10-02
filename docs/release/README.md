@@ -19,7 +19,7 @@ RELEASE_NOTES.md
 수동 실행과 PR 검사는 GitHub Release를 게시하지 않습니다.
 Artifact는 14일간 보관되며 실행 파일을 담은 ZIP과 GitHub가 Artifact 다운로드용으로 씌우는 ZIP은 서로 다릅니다.
 
-## 버전 태그와 릴리즈 초안
+## 버전 태그와 릴리즈 공개
 
 1. `release.json`의 `version`과 `source_commit`을 검토합니다. 새 버전은 새 태그를 사용합니다.
 2. 패키지 구성이나 안내를 바꿀 때 `QUICKSTART.ko.txt`와 `NOTES.md`를 함께 확인합니다.
@@ -31,10 +31,11 @@ git push origin v0.5.0-ko.1
 ```
 
 태그와 `release.json`의 버전이 일치해야 합니다. `v*-ko.*` 태그가 Windows 검증과 패키징을 실행합니다.
-성공하면 EXE·ZIP·해시·릴리즈 본문을 담은 **사전 릴리즈 초안**을 만듭니다.
+성공하면 EXE·ZIP·해시·릴리즈 본문을 담은 초안을 만들고 **사전 릴리즈로 공개**합니다.
 같은 이름의 릴리즈가 이미 있으면 실패하며 파일을 덮어쓰지 않습니다.
 기존 초안이 남은 재시도에서는 먼저 Artifact를 확인하고 초안을 정리하거나 새 버전을 선택합니다.
-공개 전 Windows에서 GUI 실행과 CLI `--help`를 확인하고, 초안의 **Publish release**를 누릅니다.
+워크플로는 패키징된 GUI의 메인 창과 두 CLI의 `--help` 실행을 확인한 뒤 공개합니다.
+수동 실행의 Artifact를 먼저 검토하세요. 버전 태그 푸시는 공개 배포를 시작합니다.
 실제 시스템 전체 UI와 재부팅 후 복원은 별도의 검증이며 CI 성공으로 대체할 수 없습니다.
 
 ## ZIP 안의 파일

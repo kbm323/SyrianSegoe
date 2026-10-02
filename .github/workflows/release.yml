@@ -81,6 +81,40 @@ jobs:
         working-directory: build-source
         shell: pwsh
         run: ./build.ps1
+      - name: Check packaged CLI entry points
+        working-directory: build-source/dist
+        shell: pwsh
+        run: |
+          & ./SyrianSegoe-Korean-Build.exe --help
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged builder failed' }
+          & ./SyrianSegoe-Korean-Install.exe --help
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged installer failed' }
+      - name: Check the packaged GUI opens without applying fonts
+        working-directory: build-source/dist
+        shell: pwsh
+        run: |
+          $gui = Start-Process -FilePath (Resolve-Path ./SyrianSegoe.exe) -PassThru
+          $ownedIds = @($gui.Id)
+          try {
+            $ready = $false
+            for ($attempt = 0; $attempt -lt 30; $attempt++) {
+              Start-Sleep -Milliseconds 500
+              $gui.Refresh()
+              if ($gui.HasExited) { throw "GUI exited before opening (code $($gui.ExitCode))" }
+              # PyInstaller onefile uses a parent bootloader and a child GUI process.
+              $children = Get-CimInstance Win32_Process -Filter "ParentProcessId=$($gui.Id)"
+              $ownedIds = @(@($gui.Id) + @($children.ProcessId) | Where-Object { $_ } | Select-Object -Unique)
+              $window = Get-Process -Id $ownedIds -ErrorAction SilentlyContinue |
+                Where-Object { $_.MainWindowHandle -ne 0 -and $_.MainWindowTitle -eq 'SyrianSegoe' }
+              if ($window) {
+                $ready = $true
+                break
+              }
+            }
+            if (-not $ready) { throw 'Packaged GUI did not open its main window' }
+          } finally {
+            Get-Process -Id $ownedIds -ErrorAction SilentlyContinue | Stop-Process -Force
+          }
       - name: Assemble and verify downloads
         shell: pwsh
         env:
@@ -103,8 +137,8 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  draft:
-    name: Create a prerelease draft
+  publish:
+    name: Publish the verified prerelease
     needs: build
     if: github.event_name == 'push' && github.ref_type == 'tag' && github.repository == 'kbm323/SyrianSegoe'
     runs-on: ubuntu-latest
@@ -131,3 +165,4 @@ jobs:
             --verify-tag --draft --prerelease \
             --title "SyrianSegoe Korean $RELEASE_VERSION · Windows 11 × Pretendard" \
             --notes-file release/RELEASE_NOTES.md
+          gh release edit "$RELEASE_VERSION" --draft=false --prerelease

@@ -94,7 +94,7 @@ Fluent Icons·MDL2·Emoji·Symbol은 대상에서 제외하며 Windows 원본 �
 `main`은 배포 홈과 릴리즈 구성을 관리합니다. 앱 소스를 찾는 경우 한국어 개발 브랜치를 사용하세요.
 
 배포는 `release.json`의 **고정한 소스 커밋**에서 기존 빌더를 실행합니다.
-Windows 테스트 → GUI·CLI 패키징 → ZIP·해시 검사 → 버전 태그의 릴리즈 초안을 생성합니다.
+Windows 테스트 → GUI·CLI 패키징과 실행 확인 → ZIP·해시 검사 → 버전 태그의 사전 릴리즈를 공개합니다.
 수동 Actions 실행은 검토용 파일만 만들며 공개 게시하지 않습니다.
 
 [릴리즈 만들기](docs/release/README.md) · [릴리즈 본문 템플릿](docs/release/NOTES.md) ·

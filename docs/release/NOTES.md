@@ -43,7 +43,8 @@ Pretendard는 [공식 1.3.9 릴리즈](https://github.com/orioncactus/pretendard
 
 ## 검증 범위와 제한
 
-배포 워크플로는 고정한 소스의 테스트, Windows EXE 패키징, ZIP 구성과 해시를 검사합니다.
+배포 워크플로는 고정한 소스의 테스트, Windows EXE 패키징, GUI 메인 창 열기,
+두 CLI의 도움말 실행, ZIP 구성과 해시를 검사합니다.
 **실제 Windows 전체 UI와 재부팅 후 적용·복원은 미검증**입니다.
 일부 UI는 원본 경로를 직접 읽어 바뀌지 않을 수 있고, Variable opsz 디자인·굵기별 조판에는 제한이 있습니다.
 
