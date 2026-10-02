@@ -1,0 +1,22 @@
+name: Korean build-only checks
+on:
+  push:
+    branches: [pretendard-korean-support]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r src/requirements-build.txt
+      - run: python -m unittest discover -s tests -v
+      - run: python -m compileall -q src tests
+      - name: Package build-only CLI
+        run: python -m PyInstaller --noconfirm --onefile --name SyrianSegoe-Korean-Build --paths src src/korean_builder.py
+      # No generated Windows/Pretendard fonts are published, and no install runs.

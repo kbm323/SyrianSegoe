@@ -1,3 +1,14 @@
+## Experimental Korean / Pretendard branch
+
+This branch adds **build-only** ordinary Pretendard support for Korean Windows 11.
+Read [한국어 사용 방법 및 위험사항](README.ko.md) before using it.
+The Korean builder creates and validates six Segoe UI and three Malgun Gothic
+text fonts without installing them, modifying the registry, or requesting elevation.
+Korean inputs are blocked from the legacy GUI's Build & Apply path.
+Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Emoji and Segoe UI Symbol are excluded.
+Segoe UI Variable replacement and real Windows UI/rollback testing remain unverified.
+Upstream claims and instructions below describe the original application, not
+verified Korean system application support in this branch.
 
 > # Important Notes
 > By now, we have hit 100 stars. A massive thanks to everyone who has explored and starred this project. I am deeply proud to have built a globally unique tool that takes a completely different, unconventional approach to Windows customization. 
